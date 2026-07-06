@@ -1,0 +1,50 @@
+# ============================================================
+# FILE: .gitignore (di root folder)
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+ENV/
+*.log
+*.pid
+
+# Environment Variables
+.env
+*.env
+*.env.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build
+dist/
+build/
+*.o
+*.exe
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.pyc
+*.pkl
+*.jsonl
+*.db
+*.sqlite3
