@@ -7,10 +7,10 @@
 
 **FluX!** adalah Sistem AI generatif berbasis arsitektur cerdas yang mampu merancang dan menghasilkan denah rumah secara otomatis dari input teks (Natural Language). Tidak sekadar membuat gambar, FluX! memvalidasi setiap rancangan denah menggunakan standar regulasi bangunan (via RAG), simulasi energi termal (PDE), dan metrik evaluasi spasial 4-dimensi (RFP-A) untuk memastikan desain yang optimal, rasional, dan fungsional.
 
-![FluX Input Interface](img\Screenshot 2026-07-30 105052.png)
+![FluX Input Interface](img/Screenshot%202026-07-30%20105052.png)
 *Antarmuka input kebutuhan pengguna berbasis teks natural.*
 
-![FluX Output Interface](img\Screenshot 2026-07-30 105154.png)
+![FluX Output Interface](img/Screenshot%202026-07-30%20105154.png)
 *Output rekomendasi 5 denah terbaik berdasarkan skor energi dan ruang.*
 
 ## ✨ Fitur Utama
