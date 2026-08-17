@@ -1,0 +1,16 @@
+# Dependency dan Virtual Environment
+node_modules/
+venv/
+__pycache__/
+
+# Environment Variables & Logs
+.env
+*.log
+
+# Folder besar / data mentah (hanya di root project)
+/flux/
+/model/
+/dataset/
+
+# Path spesifik untuk frontend (abaikan node_modules, tapi track source code)
+interface/frontend/node_modules/
