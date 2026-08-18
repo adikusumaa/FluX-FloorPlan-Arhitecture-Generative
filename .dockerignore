@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.env
+**/venv
+**/.venv
+**/env
+*.log
+*.pid
+*.sqlite3
+*.db
+
+# Node.js
+**/node_modules
+**/dist
+**/.vite
+**/build
+**/package-lock.json  # (akan di-install ulang di container)
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.swp
+*.swo
+
+# Folder berat yang tidak dibutuhkan saat build (kecuali model)
+dataset/
+img/
+*.pkl
+*.h5
+*.pb
+
+# Jangan ignore folder model/ berisi .pt (karena dibutuhkan)
+!model/predict_model/*.pt
+
+# File docker & compose (tidak perlu masuk ke image)
+docker/
+docker-compose*.yml
+*.md

@@ -1,0 +1,89 @@
+Promting 
+Pembuatan PRJ.md
+
+Anda adalah seorang planner architecture specialist mulai dari pembuatan arsitektur struktur file dan folder hingga pembuatan testing dari suaaut project pada masig masgin features kecil kecilnya yang anda pilah pilah 
+
+Buatkan file plan project, berikut adalah deskripsi project nya :
+Flux! AI adalah AI yang akan mengenerate floor plan dengan style Dataset RPLAN dengan menggunakan inputasn user dalam bentuk NLP berbasisi interface website local yang menghasilkan output generate gambar floorplan RPLAN style 5 FLOORPLAN TERBAIK berdasarkan perhitungan parameter RFP-A yang akan diurutkan 5 terbaik teratas dari hail generate an yang dibuat nantinya
+
+dengan interface yang sudah saya kerjakan seperti berikut :
+interface\backend\main.py
+interface\frontend\src\App.js
+
+dengan parameter penilaian floor plan berdsarkan inputan menggunkna RFP-A :
+knowledge\evaluation matrikx\Comprehensive and Dedicated Metrics for Evaluating.pdf
+
+dengan model generaitive floor plan yang kita gunakna adalah ChatHouseDiffusion :
+model\predict_model\params.pkl
+model\predict_model\model-98.pt
+knowledge\model\ChatHouseDiffusion Prompt-Guided Generation and Editing of Floor Plans.pdf
+
+dengan menggunakan source semua yang akan kita gunakna opensource mulai dari :
+docker
+interface website
+vector database : pinecone
+mcp server/client yang digunakan untuk ai agent
+crewai
+google ai studio atau yag lebih suitable
+
+features selain processing :
+1. RAG : usign chungkin method terbaru berdasarkan penelitian yang mengoptimalkan -> Dokumentasi Tataletak kelola
+2. Encoder decoder yg optimal dalam menghemat token dari LLM encoder NLP user untuk menghasilkan json sebagai inputan ChatHouseDiffusion : AI Agent juga ini??
+3. Ventilasi, pencahayaan, environtment noise : berdasarka latitude nanti ai agent juga ini
+3. Penggunaan ChatHouseDiffusion 
+4. Penggunaan Vektor Database yangdioptimalkan 
+5. Penggunaan source yag akan digunakna open source semua
+
+INPUT Contoh dalam interface website :
+Location : akan memberikan titik peta user akan pilih select titk map pada peta yang akan kita sediakan seperti maps
+NLP Input : sebuah promting dalam pembuatan floor plan seperti saya ingin memebuat 4 kamar tidur 1 licingroom 1 rang makan 4 kamar mandi 
+
+Proses : 
+AI Agent Analyst : Membaca semua knowledge pdf yang kita gunakan 
+Input Location : akan digunakansebagai pencatatan lokasi dalam menentukan arah rotasi rumah jadi harus ditentutkan utara dll, serta musim mengenai daerah situ untuk arah angin sebagai ventilasi, dan untuk nnoise kebisisngna munkin dihitung saja karna kita ahanay bisamemeberikansaran jika mereka sudah define tempat disana kita akan memberikan perhitunga dari acara aacra biasnya thaunana yang menyebabkan kebisisngan akan dirange berapa dan kalau tidak ad acara biaa sebising apa di lihat dari faktor dekat jalan raya besar atau tidak begitu (INI PERLU AI AGENT LAGI SIH)
+Source Pinecone DB : dala mengchukin deng optimal dan hemat maka akan disotekan dan nanti ai akan berkomnikasi dengan pine cone dll semuamnggunaka mcp
+Proses setelah NLP user di proses oleh AI Agent LLM Input maka akan menghasilkan JSON yang ringkas dan sesuai dengan inputan yang akan digunakna dalam chat house diffution
+Output Staging : akan ada beberapa generate design floorplan 10 generate floor plan stagging
+Proses : Output Staging 10 FloorPlan dalam RPLAN Style akan dilakukan perhitungan (Rangking) berdsarakan parameter RFP-A tertinggi akan dihasilkan 5 tertinggi, Input location akan digunakan dalam rotasi dRPLAN sesaui dengan mata angin atau bagian dari masing amsgin kamar harus menghadap mana itu sebagai pencahayaan, untuk ventilasi juga
+Output : 5 Design FLOR PLAN RPLAN Style dengan beberapa saran dan informasi mengenai environtment : kebisisnan di range berapa dikarenakana apa begitu
+
+
+dari sini saya ingin anda membuatka WORKPLAN mengenai project ini mulai dari :
+1. Struktur Folder penempatan dari semua feteure yang sudah kita definisikan itu pembuatan folder tingkatkannya bagaiman secara rapi
+2. Pendefinsisian masing masgin feateu rdikelompokan masing masgin jadi agar lebih teliti dalam pembuatan satu feature dan melakukan test nya bisa di debug mengethaumana feature yang sudah berhasil
+
+Contoh Work Plan
+1. Pembuatna strrktru folder dll lah pokoknya itu secara profesional rapi
+2. Pendefinisian Feature Project 
+a. Feature Interface Website yang sudha jaadi tadi
+ a1. Front End
+	- Pembauan ifnrastruktur ndoe ontohnya ...
+		Devllop
+			- [ ] code ...
+			- [ ] code ...
+		Testing
+			- [ ] cod ek=harus menghaiskan  ...
+  	- pENBUATAN ui inut nlp user
+	- pembuatan inptut map user
+	- pembuatan output 5 design denah teratas 
+	- pembuatan design saran pada masig msaing RPLAN yang 5 teratas jika diklik akan mengetahui sarna dan nilai kebisisinan dll
+ a2 Backend 
+	- Pembuatna
+		Dev
+			- [v] pembuatan code ...
+			-
+		Test
+	-
+
+b. Feature RAG 
+	
+
+PANJANG TIDAK APA APA SEPANAJNG APAPUN ITU ASALAHKANA DETAIL DAN RAPI LANGKAH LANGAKHANYA DETAIL BNAYAK IS OKE
+
+
+
+
+
+
+
+
