@@ -525,3 +525,106 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ===== IKON PETA ===== */
+.map-icon-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.map-icon-btn:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.map-icon-img {
+  width: 32px;   /* lebih kecil */
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalFadeIn 0.25s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.modal-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1C1C1E;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #8E8E93;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #F2F2F7;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body .map-hint {
+  text-align: center;
+  font-size: 14px;
+  color: #8E8E93;
+  margin-top: 12px;
+}
+
+/* Responsif modal */
+@media (max-width: 700px) {
+  .modal-content {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+}

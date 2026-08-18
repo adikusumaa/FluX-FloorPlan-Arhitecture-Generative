@@ -1,40 +1,51 @@
-// ============================================================
-// FILE: frontend/src/App.js
-// ============================================================
 import React, { useState } from 'react';
-import axios from 'axios';
+import useStore from './store/useStore';
+import { generateFloorplan } from './services/api';
+import MapPicker from './components/MapPicker';
+import NLPInput from './components/NLPInput';
+import OutputGallery from './components/OutputGallery';
+import DetailModal from './components/DetailModal';
 import './App.css';
 
-const API_BASE_URL = 'http://localhost:8000';
-
 function App() {
-  const [userText, setUserText] = useState('');
-  const [weights, setWeights] = useState([25, 25, 25, 25]);
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [parsedData, setParsedData] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('');
+  const {
+    userText,
+    weights,
+    coordinates,
+    loading,
+    results,
+    parsedData,
+    statusMessage,
+    setUserText,
+    setWeights,
+    setCoordinates,
+    setLoading,
+    setResults,
+    setError,
+    setStatusMessage,
+    reset,
+  } = useStore();
 
-  const weightLabels = ['Keterbukaan', 'Sirkulasi', 'Rasionalitas', 'Adaptabilitas'];
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const handleGenerate = async () => {
+    if (!userText) {
+      setStatusMessage('Mohon tuliskan kebutuhan rumah Anda.');
+      return;
+    }
+
     setLoading(true);
     setResults(null);
-    setParsedData(null);
     setStatusMessage('Sedang memproses kebutuhan Anda...');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/generate`, {
-        user_text: userText,
-        weights: weights.map(w => w / 100)
-      });
-      
+      const response = await generateFloorplan(userText, weights, coordinates);
       setStatusMessage('Selesai! Berikut 5 denah terbaik.');
-      setResults(response.data.data);
-      setParsedData(response.data.parsed_data);
+      setResults(response.data, response.parsed_data);
     } catch (error) {
       console.error(error);
       setStatusMessage('Error: Gagal menghubungi server. Pastikan backend berjalan.');
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -42,15 +53,8 @@ function App() {
 
   const handleWeightChange = (index, value) => {
     const newWeights = [...weights];
-    newWeights[index] = parseInt(value);
+    newWeights[index] = value;
     setWeights(newWeights);
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 0.8) return 'score-green';
-    if (score >= 0.6) return 'score-blue';
-    if (score >= 0.4) return 'score-orange';
-    return 'score-red';
   };
 
   return (
@@ -86,35 +90,22 @@ function App() {
           </div>
 
           <div className="input-body">
-            <textarea
-              className="apple-textarea"
-              rows="4"
-              placeholder="Contoh: Saya mau rumah 3 kamar tidur, 2 kamar mandi, luas 120m², dengan ruang tamu yang luas. Saya seorang lansia, jadi ingin akses mudah."
-              value={userText}
-              onChange={(e) => setUserText(e.target.value)}
-            />
-            
-            <div className="weight-section">
-              <label className="weight-label">Prioritas Desain (sesuaikan sesuai preferensi)</label>
-              <div className="weight-grid">
-                {weightLabels.map((label, idx) => (
-                  <div key={idx} className="weight-item">
-                    <div className="weight-header">
-                      <span className="weight-name">{label}</span>
-                      <span className="weight-value">{weights[idx]}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      className="apple-slider"
-                      min="0"
-                      max="100"
-                      value={weights[idx]}
-                      onChange={(e) => handleWeightChange(idx, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
+            {/* MAP PICKER */}
+            <div className="mb-6">
+              <label className="block font-medium mb-2 text-gray-700">Pilih Lokasi (klik peta)</label>
+              <MapPicker coordinates={coordinates} onCoordinatesChange={setCoordinates} />
+              <p className="text-xs text-gray-500 mt-1">
+                Latitude: {coordinates.lat.toFixed(5)}, Longitude: {coordinates.lng.toFixed(5)}
+              </p>
             </div>
+
+            {/* NLP INPUT */}
+            <NLPInput
+              userText={userText}
+              onTextChange={setUserText}
+              weights={weights}
+              onWeightChange={handleWeightChange}
+            />
 
             <button
               className={`apple-button ${loading ? 'apple-button-loading' : ''}`}
@@ -149,61 +140,12 @@ function App() {
         </div>
       </section>
 
-      {results && (
-        <section className="results-section">
-          <div className="results-header">
-            <h2 className="section-title">5 Denah Terbaik untuk Anda</h2>
-            <p className="section-subtitle">Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.</p>
-          </div>
+      {/* OUTPUT GALLERY */}
+      <OutputGallery results={results} onCardClick={setSelectedPlan} />
 
-          <div className="results-grid">
-            {results.map((plan) => (
-              <div key={plan.id} className="result-card">
-                <div className="result-card-image">
-                  <img src={plan.image_url} alt={plan.id} />
-                  <div className="result-card-badge">#{plan.rank}</div>
-                </div>
-                <div className="result-card-body">
-                  <div className="result-card-header">
-                    <span className="result-card-style">{plan.style}</span>
-                    <span className="result-card-score">
-                      {plan.scores.composite.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="result-card-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">EUI</span>
-                      <span className="stat-value">{plan.energy.EUI} kWh/m²</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Luas</span>
-                      <span className="stat-value">{plan.energy.total_area} m²</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Status</span>
-                      <span className={`stat-value ${plan.energy.fire_safety_status === 'OK' ? 'stat-ok' : 'stat-warning'}`}>
-                        {plan.energy.fire_safety_status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="result-card-scores">
-                    {['O', 'C', 'R', 'A'].map((label, idx) => {
-                      const keys = ['spatial_openness', 'circulation_efficiency', 'layout_rationality', 'adaptability'];
-                      const val = plan.scores[keys[idx]];
-                      return (
-                        <div key={idx} className="score-dot">
-                          <span className="score-dot-label">{label}</span>
-                          <div className={`score-dot-bar ${getScoreColor(val)}`} style={{ width: `${val * 100}%` }}></div>
-                          <span className="score-dot-value">{val.toFixed(2)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+      {/* DETAIL MODAL */}
+      {selectedPlan && (
+        <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
       )}
     </div>
   );
