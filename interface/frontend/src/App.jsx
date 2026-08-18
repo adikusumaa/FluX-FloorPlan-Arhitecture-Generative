@@ -6,6 +6,7 @@ import useStore from './store/useStore'
 import { generateFloorplan } from './services/api'
 import './App.css'
 import mapIcon from './assets/LocationPNG.png';
+import DetailModal from './components/DetailModal';
 
 function App() {
   const { 
@@ -23,7 +24,7 @@ function App() {
 
   // State untuk modal peta
   const [showMapModal, setShowMapModal] = useState(false)
-
+  const [selectedPlan, setSelectedPlan] = useState(null)
   const handleGenerate = async () => {
     if (!userText || userText.length < 10) {
       alert('Deskripsi minimal 10 karakter')
@@ -129,7 +130,7 @@ function App() {
               Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.
             </p>
           </div>
-          <OutputGallery results={results} />
+          <OutputGallery results={results} onCardClick={setSelectedPlan} />
         </section>
       )}
 
@@ -150,6 +151,11 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* DETAIL MODAL */}
+        {selectedPlan && (
+            <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
       )}
     </div>
   )

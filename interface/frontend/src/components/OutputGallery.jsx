@@ -14,7 +14,9 @@ export default function OutputGallery({ results, onCardClick }) {
     <section className="results-section">
       <div className="results-header">
         <h2 className="section-title">5 Denah Terbaik untuk Anda</h2>
-        <p className="section-subtitle">Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.</p>
+        <p className="section-subtitle">
+          Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.
+        </p>
       </div>
 
       <div className="results-grid">
@@ -29,6 +31,7 @@ export default function OutputGallery({ results, onCardClick }) {
               <img src={plan.image_url} alt={plan.id || `Denah ${index + 1}`} />
               <div className="result-card-badge">#{plan.rank || index + 1}</div>
             </div>
+
             <div className="result-card-body">
               <div className="result-card-header">
                 <span className="result-card-style">{plan.style || 'RPLAN'}</span>
@@ -36,6 +39,7 @@ export default function OutputGallery({ results, onCardClick }) {
                   {plan.scores?.composite?.toFixed(2) || '0.00'}
                 </span>
               </div>
+
               <div className="result-card-stats">
                 <div className="stat-item">
                   <span className="stat-label">EUI</span>
@@ -47,19 +51,32 @@ export default function OutputGallery({ results, onCardClick }) {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Status</span>
-                  <span className={`stat-value ${plan.energy?.fire_safety_status === 'OK' ? 'stat-ok' : 'stat-warning'}`}>
+                  <span
+                    className={`stat-value ${
+                      plan.energy?.fire_safety_status === 'OK' ? 'stat-ok' : 'stat-warning'
+                    }`}
+                  >
                     {plan.energy?.fire_safety_status || '-'}
                   </span>
                 </div>
               </div>
+
               <div className="result-card-scores">
                 {['O', 'C', 'R', 'A'].map((label, idx) => {
-                  const keys = ['spatial_openness', 'circulation_efficiency', 'layout_rationality', 'adaptability'];
+                  const keys = [
+                    'spatial_openness',
+                    'circulation_efficiency',
+                    'layout_rationality',
+                    'adaptability',
+                  ];
                   const val = plan.scores?.[keys[idx]] ?? 0;
                   return (
                     <div key={idx} className="score-dot">
                       <span className="score-dot-label">{label}</span>
-                      <div className={`score-dot-bar ${getScoreColor(val)}`} style={{ width: `${val * 100}%` }}></div>
+                      <div
+                        className={`score-dot-bar ${getScoreColor(val)}`}
+                        style={{ width: `${val * 100}%` }}
+                      />
                       <span className="score-dot-value">{val.toFixed(2)}</span>
                     </div>
                   );

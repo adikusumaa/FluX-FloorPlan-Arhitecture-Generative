@@ -98,15 +98,15 @@ Penempatan fitur memisahkan logika yang berjalan di cloud (Kaggle) dan lokal.
 **A.1. Frontend (React.js)**
 *   **Dev:**
     *   [x] Inisialisasi `interface/frontend/src/App.js` dasar.
-    *   [ ] Inisialisasi Vite, TailwindCSS, dan konfigurasi environment variables (`.env`).
-    *   [ ] Pembuatan UI Map Picker menggunakan Leaflet: Menangkap event klik untuk mendapatkan koordinat (*latitude*, *longitude*).
-    *   [ ] Pembuatan UI NLP Input: *Text area* dengan validasi state minimum karakter.
-    *   [ ] Integrasi *State Management* (Zustand/Redux) untuk tracking status *loading* AI.
-    *   [ ] Pembuatan UI Output Gallery: Render Base64 *image string* menjadi elemen `<img>`.
-    *   [ ] Pembuatan Detail Modal: Menampilkan data metrik RFP-A dan hasil string saran lingkungan.
+    *   [x] Inisialisasi Vite, TailwindCSS, dan konfigurasi environment variables (`.env`).
+    *   [x] Pembuatan UI Map Picker menggunakan Leaflet: Menangkap event klik untuk mendapatkan koordinat (*latitude*, *longitude*).
+    *   [x] Pembuatan UI NLP Input: *Text area* dengan validasi state minimum karakter.
+    *   [x] Integrasi *State Management* (Zustand/Redux) untuk tracking status *loading* AI.
+    *   [x] Pembuatan UI Output Gallery: Render Base64 *image string* menjadi elemen `<img>`.
+    *   [x] Pembuatan Detail Modal: Menampilkan data metrik RFP-A dan hasil string saran lingkungan.
 *   **Test:**
-    *   [ ] Unit test state Leaflet untuk memastikan koordinat valid.
-    *   [ ] Unit test render komponen gambar menggunakan *dummy* Base64.
+    *   [x] Unit test state Leaflet untuk memastikan koordinat valid.
+    *   [x] Unit test render komponen gambar menggunakan *dummy* Base64.
 
 **A.2. Backend (FastAPI)**
 *   **Dev:**
