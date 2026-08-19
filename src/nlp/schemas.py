@@ -81,8 +81,8 @@ class FloorPlanRequest(BaseModel):
     
     @validator('rooms')
     def check_unique_names(cls, rooms):
-        """Validasi: nama ruangan harus unik"""
-        names = [r.name.lower() for r in rooms]
+        """Validasi: nama ruangan harus unik (case-insensitive)"""
+        names = [r.name.lower().strip() for r in rooms]
         if len(names) != len(set(names)):
             duplicates = [n for n in set(names) if names.count(n) > 1]
             raise ValueError(f"Nama ruangan duplikat: {duplicates}")
@@ -90,11 +90,41 @@ class FloorPlanRequest(BaseModel):
     
     @validator('rooms')
     def check_links_valid(cls, rooms):
-        """Validasi: semua links merujuk ke nama ruangan yang valid"""
-        room_names = [r.name.lower() for r in rooms]
+        """
+        Validasi: semua links merujuk ke nama ruangan yang valid.
+        Case-insensitive, hilangkan "the ", dan periksa substring.
+        """
+        # Kumpulkan nama ruangan yang sudah dinormalisasi
+        room_names = []
+        for room in rooms:
+            name = room.name.lower().strip()
+            if name.startswith('the '):
+                name = name[4:]
+            room_names.append(name)
+
+        # Juga simpan tipe ruangan untuk fallback
+        room_types = {}
+        for room in rooms:
+            room_types[room.name.lower().strip()] = room.type
+
         for room in rooms:
             for link in room.links:
-                if link.lower() not in room_names:
+                link_norm = link.lower().strip()
+                if link_norm.startswith('the '):
+                    link_norm = link_norm[4:]
+
+                # 1. Cek exact match setelah normalisasi
+                if link_norm in room_names:
+                    continue
+
+                # 2. Coba cari dengan substring (misal "common" cocok dengan "common room")
+                found = False
+                for rname in room_names:
+                    if link_norm in rname or rname in link_norm:
+                        found = True
+                        break
+
+                if not found:
                     raise ValueError(
                         f"Link '{link}' di ruangan '{room.name}' "
                         f"tidak merujuk ke ruangan yang valid"
@@ -115,5 +145,4 @@ class FloorPlanRequest(BaseModel):
     def to_chd_format(self) -> dict:
         """Konversi ke format ChatHouseDiffusion (panggil converter)"""
         from .converter import convert_to_chd_format
-        # Gunakan model_dump() untuk Pydantic v2
         return convert_to_chd_format(self.model_dump())

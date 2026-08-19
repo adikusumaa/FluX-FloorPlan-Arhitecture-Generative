@@ -15,11 +15,9 @@ logger = logging.getLogger(__name__)
 # Custom Error Classes
 # ============================================================
 class DecoderError(Exception):
-    """Base exception untuk decoder"""
     pass
 
 class ValidationErrorDetail(DecoderError):
-    """Error saat validasi Pydantic gagal"""
     def __init__(self, errors: list):
         self.errors = errors
         super().__init__(self._format_errors())
@@ -29,68 +27,28 @@ class ValidationErrorDetail(DecoderError):
         for error in self.errors:
             loc = ' -> '.join(str(l) for l in error['loc'])
             messages.append(f"{loc}: {error['msg']}")
-        return f"Validasi gagal:\n" + "\n".join(messages)
+        return "Validasi gagal:\n" + "\n".join(messages)
 
 class MalformedJSONError(DecoderError):
-    """Error saat input bukan JSON yang valid"""
     pass
 
-
 # ============================================================
-# Fungsi Validasi Utama
+# Fungsi Konversi yang Diperbaiki
 # ============================================================
-def validate_and_parse(raw_json: Union[str, dict]) -> FloorPlanRequest:
-    """
-    Validasi dan parse output encoder menjadi FloorPlanRequest.
-    
-    Args:
-        raw_json: JSON string atau dict dari encoder (/encode_detailed)
-    
-    Returns:
-        FloorPlanRequest: Objek Pydantic yang sudah divalidasi
-    
-    Raises:
-        MalformedJSONError: Jika input bukan JSON yang valid
-        ValidationErrorDetail: Jika validasi Pydantic gagal
-    """
-    # 1. Parse JSON jika masih string
-    if isinstance(raw_json, str):
-        try:
-            data = json.loads(raw_json)
-        except json.JSONDecodeError as e:
-            raise MalformedJSONError(f"JSON tidak valid: {e}")
-    else:
-        data = raw_json
-    
-    # 2. Pastikan ada field 'rooms'
-    if 'rooms' not in data or not data['rooms']:
-        # Coba cari di dalam 'summary' atau langsung di root
-        if 'summary' in data and 'rooms' not in data:
-            # Kemungkinan ini output dari /encode (lama), bukan /encode_detailed
-            # Kita perlu mengkonversi summary ke format rooms
-            logger.warning("Input dari /encode (lama), mengkonversi ke format detailed")
-            data = _convert_summary_to_detailed(data)
-        else:
-            raise ValidationErrorDetail([{
-                'loc': ('rooms',),
-                'msg': 'Field "rooms" tidak ditemukan atau kosong'
-            }])
-    
-    # 3. Validasi dengan Pydantic
-    try:
-        validated = FloorPlanRequest(**data)
-        logger.info(f"✅ Validasi berhasil! {len(validated.rooms)} ruangan terdeteksi.")
-        return validated
-    except ValidationError as e:
-        raise ValidationErrorDetail(e.errors())
-
 
 def _convert_summary_to_detailed(summary_data: dict) -> dict:
     """
-    Konversi output /encode (summary saja) ke format detailed.
-    Ini adalah fallback untuk kompatibilitas dengan encoder lama.
+    Konversi dari summary (jumlah per tipe) ke list rooms dengan default size.
     """
-    room_types = {
+    # Pastikan summary_data adalah dict
+    if not isinstance(summary_data, dict):
+        try:
+            summary_data = dict(summary_data)
+        except:
+            return {'rooms': [], 'summary': summary_data}
+    
+    # Mapping tipe ruangan ke nama default
+    room_mapping = {
         'bedroom': ['master room', 'bedroom', 'guest room'],
         'bathroom': ['bathroom', 'toilet'],
         'living_room': ['living room', 'lounge'],
@@ -100,57 +58,153 @@ def _convert_summary_to_detailed(summary_data: dict) -> dict:
     }
     
     rooms = []
-    for room_type, names in room_types.items():
+    for room_type, names in room_mapping.items():
+        # Ambil count dari summary, bisa berupa int atau string
         count = summary_data.get(room_type, 0)
-        for i in range(count):
-            name = names[0] if count == 1 else f"{names[0]} {i+1}"
-            rooms.append({
-                'name': name,
-                'type': room_type,
-                'size': {'width': 10.0, 'height': 10.0},  # default size
-                'links': []
-            })
+        try:
+            count = int(count)
+        except:
+            count = 0
+        
+        if count > 0:
+            default_name = names[0]  # nama utama
+            for i in range(count):
+                if count == 1:
+                    name = default_name
+                else:
+                    name = f"{default_name} {i+1}"
+                rooms.append({
+                    'name': name,
+                    'type': room_type,
+                    'size': {'width': 10.0, 'height': 10.0},
+                    'links': []
+                })
+    
+    # Jika rooms masih kosong, coba ambil dari field lain di summary
+    if not rooms:
+        # Coba semua key di summary yang nilainya integer >0
+        for key, val in summary_data.items():
+            if key in room_mapping:
+                continue  # sudah diproses
+            try:
+                count = int(val)
+                if count > 0:
+                    # Tambahkan sebagai common_room atau tipe yang tidak dikenal
+                    for i in range(count):
+                        rooms.append({
+                            'name': f"{key.replace('_', ' ')} {i+1}" if count > 1 else key.replace('_', ' '),
+                            'type': 'common_room',  # fallback
+                            'size': {'width': 10.0, 'height': 10.0},
+                            'links': []
+                        })
+            except:
+                pass
     
     return {'rooms': rooms, 'summary': summary_data}
 
 
-def validate_json_str(json_str: str) -> Tuple[bool, Union[FloorPlanRequest, str]]:
+def _convert_root_to_detailed(root_data: dict) -> dict:
     """
-    Fungsi helper untuk validasi dengan return tuple (success, result/error).
+    Konversi dari field root langsung (bedroom, bathroom, dll.) ke format detailed.
+    """
+    room_mapping = {
+        'bedroom': ['master room', 'bedroom', 'guest room'],
+        'bathroom': ['bathroom', 'toilet'],
+        'living_room': ['living room', 'lounge'],
+        'kitchen': ['kitchen'],
+        'balcony': ['balcony', 'terrace'],
+        'common_room': ['common room', 'dining room']
+    }
     
-    Returns:
-        (True, FloorPlanRequest) jika berhasil
-        (False, error_message) jika gagal
+    rooms = []
+    for room_type, names in room_mapping.items():
+        count = root_data.get(room_type, 0)
+        try:
+            count = int(count)
+        except:
+            count = 0
+        if count > 0:
+            default_name = names[0]
+            for i in range(count):
+                if count == 1:
+                    name = default_name
+                else:
+                    name = f"{default_name} {i+1}"
+                rooms.append({
+                    'name': name,
+                    'type': room_type,
+                    'size': {'width': 10.0, 'height': 10.0},
+                    'links': []
+                })
+    return {'rooms': rooms, 'summary': root_data}
+
+
+# ============================================================
+# Fungsi Validasi Utama
+# ============================================================
+
+def validate_and_parse(raw_json: Union[str, dict]) -> FloorPlanRequest:
     """
+    Validasi dan parse output encoder menjadi FloorPlanRequest.
+    """
+    # 1. Parse JSON
+    if isinstance(raw_json, str):
+        try:
+            data = json.loads(raw_json)
+        except json.JSONDecodeError as e:
+            raise MalformedJSONError(f"JSON tidak valid: {e}")
+    else:
+        data = raw_json
+
+    # 2. Pastikan ada rooms
+    if 'rooms' not in data or not data['rooms']:
+        # Coba dari summary
+        if 'summary' in data and data['summary']:
+            logger.warning("rooms kosong, mencoba membuat dari summary")
+            data = _convert_summary_to_detailed(data['summary'])
+        else:
+            # Coba dari root fields
+            room_keys = ['bedroom', 'bathroom', 'living_room', 'kitchen', 'balcony', 'common_room']
+            if any(k in data for k in room_keys):
+                logger.warning("Mengkonversi dari root fields")
+                data = _convert_root_to_detailed(data)
+            else:
+                raise ValidationErrorDetail([{
+                    'loc': ('rooms',),
+                    'msg': 'Field "rooms" tidak ditemukan dan tidak ada sumber lain'
+                }])
+
+    # 3. Pastikan rooms tidak kosong setelah konversi
+    if 'rooms' not in data or not data['rooms']:
+        raise ValidationErrorDetail([{
+            'loc': ('rooms',),
+            'msg': 'Tidak dapat menghasilkan rooms dari data yang diberikan'
+        }])
+
+    # 4. Validasi Pydantic
+    try:
+        validated = FloorPlanRequest(**data)
+        logger.info(f"✅ Validasi berhasil! {len(validated.rooms)} ruangan terdeteksi.")
+        return validated
+    except ValidationError as e:
+        raise ValidationErrorDetail(e.errors())
+
+
+# ============================================================
+# Helper & Integrasi
+# ============================================================
+
+def validate_json_str(json_str: str) -> Tuple[bool, Union[FloorPlanRequest, str]]:
     try:
         result = validate_and_parse(json_str)
         return True, result
     except (MalformedJSONError, ValidationErrorDetail) as e:
         return False, str(e)
 
-
-# ============================================================
-# Funsi untuk integrasi dengan alur utama
-# ============================================================
 def process_encoder_output(encoder_result: Union[str, dict]) -> dict:
-    """
-    Proses output dari encoder dan siapkan untuk ChatHouseDiffusion.
-    
-    Args:
-        encoder_result: Output dari encoder_client.encode_text()
-    
-    Returns:
-        dict: Data yang siap dikirim ke MCP Client / ChatHouseDiffusion
-    
-    Raises:
-        DecoderError: Jika validasi gagal
-    """
     try:
         validated = validate_and_parse(encoder_result)
-        
-        # Konversi ke format ChatHouseDiffusion
         chd_format = validated.to_chd_format()
-        
         return {
             'status': 'success',
             'validated_data': validated.model_dump(),
@@ -163,43 +217,3 @@ def process_encoder_output(encoder_result: Union[str, dict]) -> dict:
             'status': 'error',
             'error': str(e)
         }
-
-
-# ============================================================
-# Contoh penggunaan
-# ============================================================
-if __name__ == "__main__":
-    # Test dengan output encoder
-    sample_output = {
-        "rooms": [
-            {
-                "name": "master room",
-                "type": "bedroom",
-                "size": {"width": 16, "height": 16},
-                "location": "middle of the west side",
-                "links": ["living room", "balcony"]
-            },
-            {
-                "name": "bathroom",
-                "type": "bathroom",
-                "size": {"width": 10, "height": 4},
-                "location": "middle of the east side",
-                "links": ["kitchen", "common room"]
-            }
-        ],
-        "summary": {"bedroom": 1, "bathroom": 1}
-    }
-    
-    print("="*60)
-    print("🧪 Testing Decoder")
-    print("="*60)
-    
-    result = process_encoder_output(sample_output)
-    if result['status'] == 'success':
-        print("✅ Validasi berhasil!")
-        print(f"📊 Total area: {result['total_area']:.2f} ft²")
-        print(f"📊 Room counts: {result['room_counts']}")
-        print(f"\n📤 ChatHouseDiffusion format:")
-        print(json.dumps(result['chd_format'], indent=2, ensure_ascii=False))
-    else:
-        print(f"❌ Error: {result['error']}")
