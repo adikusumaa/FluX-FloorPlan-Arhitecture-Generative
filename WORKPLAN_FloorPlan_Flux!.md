@@ -129,16 +129,28 @@ Penempatan fitur memisahkan logika yang berjalan di cloud (Kaggle) dan lokal.
     *   [x] Unit test *chunker* memastikan teks tidak terpotong di tengah kalimat.
     *   [x] Integration test pengambilan data relevan dari Pinecone menggunakan kueri pengujian.
 
-### C. Fitur NLP Encoder-Decoder (Token Optimization)
+C. Fitur NLP Encoder-Decoder (Token Optimization)
+Status: BELUM DIMULAI — Rencana Implementasi
+    C.1. Encoder (LLM di Kaggle Akun 2)
+        [] Pilihan Model: SmolStruct-1.7B (khusus structured output) atau Qwen3-0.6B-tool-router.
+        [] System Prompt: Instruksi ketat "Hanya output JSON, tanpa teks lain" dan JSON Schema yang jelas.
+        [] Endpoint: POST /encode menerima user_text dan mengembalikan JSON terstruktur.
+        [] Token Reduction Target: > 30% (dari input natural ke JSON ringkas).
 
-*   **Dev:**
-    *   [ ] Pembuatan *system prompt* untuk LLM (Encoder) yang memaksa output berupa JSON berstruktur ketat (tanpa teks penjelasan tambahan).
-    *   [ ] Pemetaan (*mapping*) variabel panjang menjadi format ringkas (misal: "Kamar Tidur" -> "kt").
-    *   [ ] Pembuatan *Pydantic model* di sisi *Decoder* untuk memvalidasi JSON hasil keluaran LLM.
-    *   [ ] Konversi JSON yang sudah divalidasi ke format parameter yang dikenali oleh `params.pkl` ChatHouseDiffusion.
-*   **Test:**
-    *   [ ] Pengukuran kalkulasi jumlah token *prompt* masuk dan keluar (target reduksi > 30%).
-    *   [ ] Unit test *Decoder* menggunakan *input* JSON yang *malformed* untuk menguji penanganan kegagalan (*error handling*).
+    C.2. Decoder (Validasi Pydantic)
+        [] Pydantic Model: FloorPlanRequest dengan field kt, km, rt, dp, bk, luas, style.
+        [] Validasi: Minimal 1 kamar tidur, luas antara 30–500 m², style salah satu dari modern, minimalis, klasik.
+        [] Error Handling: Jika JSON malformed atau tidak valid, akan mengembalikan error ke frontend dan meminta input ulang.
+
+    C.3. Konversi ke Format ChatHouseDiffusion
+        [] Mapping: kt → MasterRoom & Bedroom (jumlah disesuaikan).
+        [] Adjacency Rules: Aturan otomatis (contoh: dapur dekat ruang makan, kamar mandi dekat kamar tidur).
+        [] Output: JSON yang sesuai dengan params.pkl ChatHouseDiffusion.
+
+    C.4. Test yang Harus Dilakukan
+        [] Token Reduction Test: Ukur token sebelum dan sesudah encoding, target reduksi > 30%.
+        [] Malformed JSON Test: Kirim input yang menghasilkan JSON rusak, pastikan error handling berfungsi.
+        [] Schema Validity Test: 100% output LLM valid sesuai Pydantic.
 
 ### D. Fitur Lingkungan & Lokasi (Environment Analysis)
 
