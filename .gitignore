@@ -1,16 +1,112 @@
-# Dependency dan Virtual Environment
-node_modules/
+# ------------------------------------
+# Python & Virtual Environment
+# ------------------------------------
+flux/                         # virtual environment (Python)
 venv/
-__pycache__/
-
-# Environment Variables & Logs
+env/
 .env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 *.log
 
-# Folder besar / data mentah (hanya di root project)
-/flux/
-/model/
-/dataset/
-
-# Path spesifik untuk frontend (abaikan node_modules, tapi track source code)
+# ------------------------------------
+# Frontend (React / Node)
+# ------------------------------------
 interface/frontend/node_modules/
+interface/frontend/.pnp
+.pnp.js
+interface/frontend/build/
+interface/frontend/dist/
+interface/frontend/.env.local
+interface/frontend/.env.development.local
+interface/frontend/.env.test.local
+interface/frontend/.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+.vercel
+.vite
+
+# ------------------------------------
+# Backend Python (interface/backend)
+# ------------------------------------
+interface/backend/__pycache__/
+interface/backend/*.pyc
+interface/backend/.env
+interface/backend/venv/
+interface/backend/.pytest_cache/
+interface/backend/*.db
+interface/backend/*.sqlite3
+interface/backend/logs/
+
+# ------------------------------------
+# Dataset & Large Files
+# ------------------------------------
+dataset/                      # jika berisi data besar (gambar, CSV, dll)
+knowledge/rag_docs/           # dokumen RAG (mungkin besar)
+knowledge/model_doc/          # jika ada model terlatih
+*.h5
+*.pkl
+*.joblib
+*.onnx
+*.tflite
+*.pb
+*.ckpt
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# ------------------------------------
+# Docker (opsional)
+# ------------------------------------
+docker/*.tar
+docker/*.img
+.dockerignore
+
+# ------------------------------------
+# OS / IDE
+# ------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+desktop.ini
+*.tmp
+
+# ------------------------------------
+# Environment & Secrets
+# ------------------------------------
+*.env
+*.secret
+*.key
+*.pem
+*.crt
+
+# ------------------------------------
+# Others
+# ------------------------------------
+*.bak
+*.old
+*.orig
+*.rej
