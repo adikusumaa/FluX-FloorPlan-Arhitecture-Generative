@@ -143,25 +143,34 @@ Status: BELUM DIMULAI — Rencana Implementasi
         [x] Error Handling: Jika JSON malformed atau tidak valid, akan mengembalikan error ke frontend dan meminta input ulang.
 
     C.3. Konversi ke Format ChatHouseDiffusion
-        [] Mapping: kt → MasterRoom & Bedroom (jumlah disesuaikan).
-        [] Adjacency Rules: Aturan otomatis (contoh: dapur dekat ruang makan, kamar mandi dekat kamar tidur).
-        [] Output: JSON yang sesuai dengan params.pkl ChatHouseDiffusion.
+        [x] Mapping: kt → MasterRoom & Bedroom (jumlah disesuaikan).
+        [x] Adjacency Rules: Aturan otomatis (contoh: dapur dekat ruang makan, kamar mandi dekat kamar tidur).
+        [x] Output: JSON yang sesuai dengan params.pkl ChatHouseDiffusion.
 
     C.4. Test yang Harus Dilakukan
-        [] Token Reduction Test: Ukur token sebelum dan sesudah encoding, target reduksi > 30%.
-        [] Malformed JSON Test: Kirim input yang menghasilkan JSON rusak, pastikan error handling berfungsi.
-        [] Schema Validity Test: 100% output LLM valid sesuai Pydantic.
+        [x] Token Reduction Test: Ukur token sebelum dan sesudah encoding, target reduksi > 30%.
+        [x] Malformed JSON Test: Kirim input yang menghasilkan JSON rusak, pastikan error handling berfungsi.
+        [x] Schema Validity Test: 100% output LLM valid sesuai Pydantic.
 
 ### D. Fitur Lingkungan & Lokasi (Environment Analysis)
 
 *   **Dev:**
-    *   [ ] Integrasi API Nominatim (OSM) untuk melakukan *reverse geocoding* koordinat menjadi nama area.
+    *   [ ] Integrasi API Nominatim (OSM) untuk melakukan *reverse geocoding* koordinat menjadi nama area. Bisa di-cache untuk mengurangi request
     *   [ ] Kalkulasi sudut deklinasi matahari berdasarkan parameter *latitude* untuk menentukan rekomendasi arah bukaan cahaya (*sun path*).
     *   [ ] HTTP GET ke Open-Meteo API (parameter suhu harian, kelembaban, dan dominasi arah angin).
     *   [ ] Pembuatan algoritma berbasis aturan (*rule-based*) untuk estimasi kebisingan jalan (rentang desibel) menggunakan kalkulasi jarak (*haversine formula*) dari titik koordinat ke struktur jalan terdekat di OSM.
 *   **Test:**
     *   [ ] Unit test kalkulasi *haversine*.
     *   [ ] API *mock test* untuk Nominatim dan Open-Meteo untuk menghindari pembatasan batas akses (*rate limiting*) selama pengembangan.
+
+    Optimasi yang Bisa Dilakukan
+Caching – Simpan hasil Nominatim dan Open-Meteo untuk koordinat yang sama (menggunakan functools.lru_cache atau dictionary sederhana). Mengurangi request berulang.
+
+Rate Limiting – Karena Nominatim dan Overpass memiliki batas request (1 request/detik untuk Nominatim), kita tambahkan time.sleep(1) atau gunakan ratelimit library.
+
+Async Requests – Untuk efisiensi, kita bisa gunakan httpx.AsyncClient (untuk 2–3 API sekaligus), tapi untuk sederhana, requests dengan timeout sudah cukup.
+
+Fallback – Jika API gagal, berikan nilai default (misal: suhu 25°C, kelembaban 70%) agar pipeline tidak berhenti.
 
 ### E. Fitur Integrasi Cloud: MCP Server (Kaggle) & Generation (ChatHouseDiffusion)
 
