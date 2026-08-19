@@ -3,8 +3,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from rag.chunker import extract_sections_from_pdf, section_based_chunking
-from rag.vector_store import upsert_documents
+from src.rag.chunker import extract_sections_from_pdf, section_based_chunking
+from src.rag.vector_store import upsert_documents
 
 PDF_PATH = "D:/Academic-Project/Portofolio GEN-AI Architecture/knowledge/evaluation matrikx/Comprehensive and Dedicated Metrics for Evaluating.pdf"
 

@@ -132,15 +132,15 @@ Penempatan fitur memisahkan logika yang berjalan di cloud (Kaggle) dan lokal.
 C. Fitur NLP Encoder-Decoder (Token Optimization)
 Status: BELUM DIMULAI — Rencana Implementasi
     C.1. Encoder (LLM di Kaggle Akun 2)
-        [] Pilihan Model: SmolStruct-1.7B (khusus structured output) atau Qwen3-0.6B-tool-router.
-        [] System Prompt: Instruksi ketat "Hanya output JSON, tanpa teks lain" dan JSON Schema yang jelas.
-        [] Endpoint: POST /encode menerima user_text dan mengembalikan JSON terstruktur.
-        [] Token Reduction Target: > 30% (dari input natural ke JSON ringkas).
+        [x] Pilihan Model: SmolStruct-1.7B (khusus structured output) atau Qwen3-0.6B-tool-router.
+        [x] System Prompt: Instruksi ketat "Hanya output JSON, tanpa teks lain" dan JSON Schema yang jelas.
+        [x] Endpoint: POST /encode menerima user_text dan mengembalikan JSON terstruktur.
+        [x] Token Reduction Target: > 30% (dari input natural ke JSON ringkas).
 
     C.2. Decoder (Validasi Pydantic)
-        [] Pydantic Model: FloorPlanRequest dengan field kt, km, rt, dp, bk, luas, style.
-        [] Validasi: Minimal 1 kamar tidur, luas antara 30–500 m², style salah satu dari modern, minimalis, klasik.
-        [] Error Handling: Jika JSON malformed atau tidak valid, akan mengembalikan error ke frontend dan meminta input ulang.
+        [x] Pydantic Model: FloorPlanRequest dengan field kt, km, rt, dp, bk, luas, style.
+        [x] Validasi: Minimal 1 kamar tidur, luas antara 30–500 m², style salah satu dari modern, minimalis, klasik.
+        [x] Error Handling: Jika JSON malformed atau tidak valid, akan mengembalikan error ke frontend dan meminta input ulang.
 
     C.3. Konversi ke Format ChatHouseDiffusion
         [] Mapping: kt → MasterRoom & Bedroom (jumlah disesuaikan).

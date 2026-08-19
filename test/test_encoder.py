@@ -1,9 +1,10 @@
 # test_encoder.py
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Naik satu level ke root proyek
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mcp.client.encoder_client import encode_text
+from src.mcp.client.encoder_client import encode_text
 import json
 
 if __name__ == "__main__":

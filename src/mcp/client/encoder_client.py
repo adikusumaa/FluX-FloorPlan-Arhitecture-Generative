@@ -17,7 +17,7 @@ def encode_text(user_text: str) -> dict:
     
     try:
         response = requests.post(
-            f"{ENCODER_URL}/encode",
+            f"{ENCODER_URL}/encode_detailed",
             json={"user_text": user_text},
             timeout=60
         )

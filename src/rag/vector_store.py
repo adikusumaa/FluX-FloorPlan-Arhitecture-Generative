@@ -4,7 +4,7 @@ import json
 from typing import List, Dict
 from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
-from mcp.client.embedding_client import embed_texts
+from src.mcp.client.embedding_client import embed_texts
 
 load_dotenv()
 

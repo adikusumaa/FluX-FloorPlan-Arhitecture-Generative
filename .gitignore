@@ -1,7 +1,7 @@
-# ------------------------------------
-# Python & Virtual Environment
-# ------------------------------------
-flux/                         # virtual environment (Python)
+/flux/
+/dataset/               
+/models/
+
 venv/
 env/
 .env
