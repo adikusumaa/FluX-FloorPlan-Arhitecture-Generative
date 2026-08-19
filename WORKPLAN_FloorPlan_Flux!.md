@@ -46,7 +46,7 @@ Penempatan fitur memisahkan logika yang berjalan di cloud (Kaggle) dan lokal.
     │   │   │   ├── routes.py
     │   │   │   └── schemas.py
     │   │   ├── core/
-    │   │   └── services/
+    │   │   └── services/D
     │   └── frontend/
     │       ├── src/
     │       │   ├── App.js
@@ -111,24 +111,23 @@ Penempatan fitur memisahkan logika yang berjalan di cloud (Kaggle) dan lokal.
 **A.2. Backend (FastAPI)**
 *   **Dev:**
     *   [x] Inisialisasi `interface/backend/main.py`.
-    *   [ ] Implementasi Pydantic *schemas* untuk validasi *payload* masuk (koordinat dan teks NLP).
-    *   [ ] Pembuatan endpoint POST `/api/v1/generate`.
-    *   [ ] Integrasi pemanggilan `crew.py` (CrewAI) sebagai proses *background task* atau fungsi asinkron (AsyncIO).
-    *   [ ] Implementasi CORS middleware untuk mengizinkan *request* dari port React (5173).
+    *   [x] Implementasi Pydantic *schemas* untuk validasi *payload* masuk (koordinat dan teks NLP).
+    *   [x] Pembuatan endpoint POST `/api/v1/generate`.
+    *   [x] Integrasi pemanggilan `crew.py` (CrewAI) sebagai proses *background task* atau fungsi asinkron (AsyncIO).
+    *   [x] Implementasi CORS middleware untuk mengizinkan *request* dari port React (5173).
 *   **Test:**
-    *   [ ] Contract test endpoint `/api/v1/generate` (mengembalikan HTTP 200 dengan struktur respons JSON yang benar).
+    *   [x] Contract test endpoint `/api/v1/generate` (mengembalikan HTTP 200 dengan struktur respons JSON yang benar).
 
 ### B. Fitur RAG & Vector Database (Pinecone)
-
 *   **Dev:**
-    *   [ ] Pembuatan skrip ekstraksi teks PDF (`PyMuPDF`).
-    *   [ ] Implementasi algoritma *Layout-Aware Chunking* untuk memisahkan tabel dan teks paragraf.
-    *   [ ] Konfigurasi inisialisasi Pinecone index.
-    *   [ ] Pembuatan proses *embedding* teks menggunakan model *open-source* (misal: BAAI/bge-m3) dan *upsert* ke Pinecone.
-    *   [ ] Pembuatan fungsi `retriever` yang mengembalikan top-k dokumen berdasarkan perhitungan *cosine similarity*.
+    *   [x] Pembuatan skrip ekstraksi teks PDF (`PyMuPDF`).
+    *   [x] Implementasi algoritma *Layout-Aware Chunking* untuk memisahkan tabel dan teks paragraf. Recursive Character Splitting (512 token, overlap 50)
+    *   [x] Konfigurasi inisialisasi Pinecone index.
+    *   [x] Pembuatan proses *embedding* teks menggunakan model *open-source* (misal: BAAI/bge-m3) dan *upsert* ke Pinecone.
+    *   [x] Pembuatan fungsi `retriever` yang mengembalikan top-k dokumen berdasarkan perhitungan *cosine similarity*.
 *   **Test:**
-    *   [ ] Unit test *chunker* memastikan teks tidak terpotong di tengah kalimat.
-    *   [ ] Integration test pengambilan data relevan dari Pinecone menggunakan kueri pengujian.
+    *   [x] Unit test *chunker* memastikan teks tidak terpotong di tengah kalimat.
+    *   [x] Integration test pengambilan data relevan dari Pinecone menggunakan kueri pengujian.
 
 ### C. Fitur NLP Encoder-Decoder (Token Optimization)
 
