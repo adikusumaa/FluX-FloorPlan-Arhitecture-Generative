@@ -3,6 +3,7 @@ from fastapi import FastAPI
 import logging
 from api.routes import router
 from core.config import setup_cors
+from interface.backend.api import floorplan
 
 # Konfigurasi logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,8 @@ setup_cors(app)
 
 # Include router
 app.include_router(router)
+
+app.include_router(floorplan.router, prefix="/api/floorplan", tags=["floorplan"])
 
 @app.get("/")
 async def root():

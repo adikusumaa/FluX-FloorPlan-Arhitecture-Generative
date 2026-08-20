@@ -155,13 +155,13 @@ Status: BELUM DIMULAI — Rencana Implementasi
 ### D. Fitur Lingkungan & Lokasi (Environment Analysis)
 
 *   **Dev:**
-    *   [ ] Integrasi API Nominatim (OSM) untuk melakukan *reverse geocoding* koordinat menjadi nama area. Bisa di-cache untuk mengurangi request
-    *   [ ] Kalkulasi sudut deklinasi matahari berdasarkan parameter *latitude* untuk menentukan rekomendasi arah bukaan cahaya (*sun path*).
-    *   [ ] HTTP GET ke Open-Meteo API (parameter suhu harian, kelembaban, dan dominasi arah angin).
-    *   [ ] Pembuatan algoritma berbasis aturan (*rule-based*) untuk estimasi kebisingan jalan (rentang desibel) menggunakan kalkulasi jarak (*haversine formula*) dari titik koordinat ke struktur jalan terdekat di OSM.
+    *   [x] Integrasi API Nominatim (OSM) untuk melakukan *reverse geocoding* koordinat menjadi nama area. Bisa di-cache untuk mengurangi request
+    *   [x] Kalkulasi sudut deklinasi matahari berdasarkan parameter *latitude* untuk menentukan rekomendasi arah bukaan cahaya (*sun path*).
+    *   [x] HTTP GET ke Open-Meteo API (parameter suhu harian, kelembaban, dan dominasi arah angin).
+    *   [x] Pembuatan algoritma berbasis aturan (*rule-based*) untuk estimasi kebisingan jalan (rentang desibel) menggunakan kalkulasi jarak (*haversine formula*) dari titik koordinat ke struktur jalan terdekat di OSM.
 *   **Test:**
-    *   [ ] Unit test kalkulasi *haversine*.
-    *   [ ] API *mock test* untuk Nominatim dan Open-Meteo untuk menghindari pembatasan batas akses (*rate limiting*) selama pengembangan.
+    *   [x] Unit test kalkulasi *haversine*.
+    *   [x] API *mock test* untuk Nominatim dan Open-Meteo untuk menghindari pembatasan batas akses (*rate limiting*) selama pengembangan.
 
     Optimasi yang Bisa Dilakukan
 Caching – Simpan hasil Nominatim dan Open-Meteo untuk koordinat yang sama (menggunakan functools.lru_cache atau dictionary sederhana). Mengurangi request berulang.
