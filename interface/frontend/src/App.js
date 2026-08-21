@@ -30,21 +30,21 @@ function App() {
 
   const handleGenerate = async () => {
     if (!userText) {
-      setStatusMessage('Mohon tuliskan kebutuhan rumah Anda.');
+      setStatusMessage('Please describe your dream home.');
       return;
     }
 
     setLoading(true);
     setResults(null);
-    setStatusMessage('Sedang memproses kebutuhan Anda...');
+    setStatusMessage('Processing your request...');
 
     try {
       const response = await generateFloorplan(userText, weights, coordinates);
-      setStatusMessage('Selesai! Berikut 5 denah terbaik.');
+      setStatusMessage('Done! Here are the top 5 floor plans.');
       setResults(response.data, response.parsed_data);
     } catch (error) {
       console.error(error);
-      setStatusMessage('Error: Gagal menghubungi server. Pastikan backend berjalan.');
+      setStatusMessage('Error: Failed to connect to the server. Please make sure the backend is running.');
       setError(error.message);
     } finally {
       setLoading(false);
@@ -65,34 +65,34 @@ function App() {
             <span className="logo-text">FluX!</span>
           </div>
           <div className="nav-links">
-            <a href="#" className="nav-link">Beranda</a>
-            <a href="#" className="nav-link">Tentang</a>
-            <button className="nav-cta">Mulai</button>
+            <a href="#" className="nav-link">Home</a>
+            <a href="#" className="nav-link">About</a>
+            <button className="nav-cta">Get Started</button>
           </div>
         </div>
       </nav>
 
       <section className="hero">
         <h1 className="hero-title">
-          Desain Denah Impian<br />dengan Kecerdasan Buatan
+          Design Your Dream Floor Plan<br />with Artificial Intelligence
         </h1>
         <p className="hero-subtitle">
-          Cukup tuliskan kebutuhan rumah Anda, FluX! akan menghasilkan 5 denah terbaik 
-          yang optimal secara energi dan tata ruang.
+          Simply describe your home requirements, and FluX! will generate the 5 best floor plans 
+          optimised for energy efficiency and spatial quality.
         </p>
       </section>
 
       <section className="input-section">
         <div className="input-card">
           <div className="input-header">
-            <h2 className="section-title">Deskripsikan Kebutuhan Anda</h2>
-            <p className="section-subtitle">Tulis secara natural, FluX! akan memahami dan menghasilkan denah terbaik.</p>
+            <h2 className="section-title">Describe Your Needs</h2>
+            <p className="section-subtitle">Write naturally – FluX! will understand and produce the best layouts.</p>
           </div>
 
           <div className="input-body">
             {/* MAP PICKER */}
             <div className="mb-6">
-              <label className="block font-medium mb-2 text-gray-700">Pilih Lokasi (klik peta)</label>
+              <label className="block font-medium mb-2 text-gray-700">Select Location (click on map)</label>
               <MapPicker coordinates={coordinates} onCoordinatesChange={setCoordinates} />
               <p className="text-xs text-gray-500 mt-1">
                 Latitude: {coordinates.lat.toFixed(5)}, Longitude: {coordinates.lng.toFixed(5)}
@@ -115,22 +115,30 @@ function App() {
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Memproses...
+                  Processing...
                 </>
               ) : (
-                'Generate Denah'
+                'Generate Floor Plans'
               )}
             </button>
 
             {statusMessage && (
-              <p className={`status-message ${statusMessage.includes('Selesai') ? 'status-success' : statusMessage.includes('Error') ? 'status-error' : 'status-info'}`}>
+              <p
+                className={`status-message ${
+                  statusMessage.includes('Done')
+                    ? 'status-success'
+                    : statusMessage.includes('Error')
+                    ? 'status-error'
+                    : 'status-info'
+                }`}
+              >
                 {statusMessage}
               </p>
             )}
 
             {parsedData && (
               <div className="parsed-container">
-                <h4>Hasil Pemahaman AI:</h4>
+                <h4>AI Interpretation:</h4>
                 <pre className="parsed-json">
                   {JSON.stringify(parsedData, null, 2)}
                 </pre>

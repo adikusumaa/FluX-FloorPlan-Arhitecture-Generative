@@ -5,49 +5,49 @@
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 
-**FluX!** adalah Sistem AI generatif berbasis arsitektur cerdas yang mampu merancang dan menghasilkan denah rumah secara otomatis dari input teks (Natural Language). Tidak sekadar membuat gambar, FluX! memvalidasi setiap rancangan denah menggunakan standar regulasi bangunan (via RAG), simulasi energi termal (PDE), dan metrik evaluasi spasial 4-dimensi (RFP-A) untuk memastikan desain yang optimal, rasional, dan fungsional.
+**FluX!** is an intelligent generative AI system that automatically designs and produces floor plans from natural language input. Beyond simple image generation, FluX! validates every design against building regulations (via RAG), thermal energy simulation (PDE), and a 4‑dimensional spatial evaluation metric (RFP‑A) to ensure optimal, rational, and functional layouts.
 
 ![FluX Input Interface](img/Screenshot%202026-07-30%20105052.png)
-*Antarmuka input kebutuhan pengguna berbasis teks natural.*
+*Natural language input interface.*
 
 ![FluX Output Interface](img/Screenshot%202026-07-30%20105154.png)
-*Output rekomendasi 5 denah terbaik berdasarkan skor energi dan ruang.*
+*Top‑5 recommended floor plans ranked by energy and spatial scores.*
 
-## ✨ Fitur Utama
+## ✨ Key Features
 
-- 🗣️ **Natural Language Parsing**: Mengekstraksi intent dan kebutuhan ruang pengguna (jumlah kamar, gaya, luasan, dsb) secara otomatis menggunakan LLM Groq (Llama-3.1).
-- 📚 **RAG for Building Regulations**: Mengambil batasan hukum tata bangunan (SNI, PERMEN PUPR) secara real-time dari lebih dari 2.800 dokumen menggunakan Pinecone Vector Database.
-- 📐 **Topological Spatial Planning**: Menghasilkan *Bubble Diagram* dan graf relasi antarruang secara terstruktur.
-- 🧠 **Smart Generator & Evaluator**: Memproduksi ratusan kandidat denah, lalu memfilternya dengan ketat menggunakan algoritma A*, Visibility Graph Analysis (VGA), dan evaluasi termal.
-- 🎨 **Minimalist Apple-Style UI**: Antarmuka web modern yang dibangun dengan React murni dan CSS tanpa dependensi berlebih, super responsif dan intuitif.
+- 🗣️ **Natural Language Parsing**: Automatically extracts user intent, room requirements, style, and dimensions using Groq’s LLM (Llama-3.1).
+- 📚 **RAG for Building Regulations**: Retrieves real‑time legal constraints (SNI, PERMEN PUPR) from over 2,800 documents via Pinecone vector database.
+- 📐 **Topological Spatial Planning**: Generates bubble diagrams and room‑relation graphs.
+- 🧠 **Smart Generator & Evaluator**: Produces hundreds of candidates, then filters them using A* algorithm, Visibility Graph Analysis (VGA), and thermal evaluation.
+- 🎨 **Minimalist Apple‑Style UI**: Modern React frontend with pure CSS – lightweight, responsive, and intuitive.
 
-## 🛠️ Teknologi yang Digunakan (Tech Stack)
+## 🛠️ Tech Stack
 
-Proyek ini menggunakan arsitektur **Monorepo** yang memisahkan Frontend, Backend, dan Modul AI/Evaluator.
+The project uses a **monorepo** structure separating Frontend, Backend, and AI/Evaluation modules.
 
-### Frontend (Client-Side)
+### Frontend (Client‑Side)
 - **Framework**: React.js
-- **Styling**: Pure CSS (Apple-Style Design)
+- **Styling**: Pure CSS (Apple‑inspired design)
 - **HTTP Client**: Axios
 
-### Backend & AI (Server-Side)
-- **Bahasa**: Python 3.10+
-- **Framework API**: FastAPI
+### Backend & AI (Server‑Side)
+- **Language**: Python 3.10+
+- **API Framework**: FastAPI
 - **Server**: Uvicorn
 - **AI Engine**: Groq API (Llama-3.1-8b-instant)
-- **Vector Database**: Pinecone (llama-text-embed-v2)
+- **Vector DB**: Pinecone (llama-text-embed-v2)
 
-## 🚀 Cara Menjalankan Proyek (Instalasi)
+## 🚀 Installation & Setup
 
-Ikuti langkah-langkah berikut untuk menjalankan aplikasi FluX! di lingkungan lokal Anda.
+Follow these steps to run FluX! locally.
 
-### Prasyarat
-- Node.js & npm (terbaru)
-- Python (v3.10 ke atas)
-- API Key Groq (Untuk Parsing NLP)
-- API Key Pinecone (Untuk RAG Regulasi)
+### Prerequisites
+- Node.js & npm (latest)
+- Python 3.10+
+- Groq API key (for NLP parsing)
+- Pinecone API key (for RAG regulations)
 
-### 1. Clone Repositori
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/adikusumaa/FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter.git
 cd FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter
