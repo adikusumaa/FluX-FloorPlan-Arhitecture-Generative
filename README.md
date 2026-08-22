@@ -19,7 +19,6 @@
 
 
 ## ✨ Key Features
-
 - 🗣️ **Natural Language Parsing**: Automatically extracts user intent, room requirements, style, and dimensions using Groq’s LLM (Llama-3.1).
 - 📚 **RAG for Building Regulations**: Retrieves real‑time legal constraints (SNI, PERMEN PUPR) from over 2,800 documents via Pinecone vector database.
 - 📐 **Topological Spatial Planning**: Generates bubble diagrams and room‑relation graphs.
