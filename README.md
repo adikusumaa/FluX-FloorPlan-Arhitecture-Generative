@@ -7,11 +7,16 @@
 
 **FluX!** is an intelligent generative AI system that automatically designs and produces floor plans from natural language input. Beyond simple image generation, FluX! validates every design against building regulations (via RAG), thermal energy simulation (PDE), and a 4‑dimensional spatial evaluation metric (RFP‑A) to ensure optimal, rational, and functional layouts.
 
-![FluX Input Interface](img/Screenshot%202026-07-30%20105052.png)
+![FluX Input Interface](img/Screenshot%202026-08-22%20145415.png)
 *Natural language input interface.*
+
+![FluX Input MAPPICK](img/Screenshot%202026-08-22%20145447.png)
+*Mappick input interface.*
 
 ![FluX Output Interface](img/Screenshot%202026-07-30%20105154.png)
 *Top‑5 recommended floor plans ranked by energy and spatial scores.*
+
+
 
 ## ✨ Key Features
 
