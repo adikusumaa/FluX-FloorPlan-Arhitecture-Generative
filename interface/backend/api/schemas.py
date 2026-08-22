@@ -1,12 +1,10 @@
-# interface/backend/api/schemas.py
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Dict, Any
 
 class GenerateRequest(BaseModel):
-    """Payload yang diterima dari frontend."""
-    user_text: str = Field(..., min_length=10, description="Deskripsi kebutuhan ruang")
-    weights: List[float] = Field(..., length=4, description="Bobot prioritas [Keterbukaan, Sirkulasi, Rasionalitas, Adaptabilitas]")
-    location: Dict[str, float] = Field(..., description="Koordinat {lat, lng}")
+    user_text: str = Field(..., alias="userText", description="Deskripsi kebutuhan ruang")
+    weights: List[float] = Field(..., min_length=4, max_length=4, description="Bobot prioritas")
+    location: Dict[str, float] = Field(..., alias="coordinates", description="Koordinat {lat, lng}")
 
     @validator('weights')
     def weights_sum_to_one(cls, v):
@@ -18,15 +16,23 @@ class GenerateRequest(BaseModel):
     def location_has_lat_lng(cls, v):
         if 'lat' not in v or 'lng' not in v:
             raise ValueError('location harus memiliki kunci "lat" dan "lng"')
+        if not (-90 <= v['lat'] <= 90):
+            raise ValueError('lat tidak valid')
+        if not (-180 <= v['lng'] <= 180):
+            raise ValueError('lng tidak valid')
         return v
 
+    model_config = {
+        "populate_by_name": True,
+        "allow_population_by_field_name": True
+    }
+
 class FloorPlanData(BaseModel):
-    """Data satu denah."""
     id: str
     rank: int
-    image_url: str  # Base64 atau URL
-    style: Optional[str] = "RPLAN"
-    scores: Dict[str, float]  # composite, spatial_openness, etc.
+    image_url: str
+    style: Optional[str] = "Modern"
+    scores: Dict[str, float]
     energy: Optional[Dict[str, Any]] = None
     suggestions: Optional[Dict[str, str]] = None
     rfpa: Optional[Dict[str, Any]] = None
@@ -34,7 +40,6 @@ class FloorPlanData(BaseModel):
     location: Optional[Dict[str, float]] = None
 
 class GenerateResponse(BaseModel):
-    """Response yang dikirim ke frontend."""
     status: str
     message: str
     data: List[FloorPlanData]

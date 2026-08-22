@@ -1,64 +1,55 @@
-import React, { useState } from 'react';
-import useStore from './store/useStore';
-import { generateFloorplan } from './services/api';
+import { useState } from 'react';
 import MapPicker from './components/MapPicker';
 import NLPInput from './components/NLPInput';
 import OutputGallery from './components/OutputGallery';
 import DetailModal from './components/DetailModal';
+import useStore from './store/useStore';
+import { generateFloorplan } from './services/api';
+import mapIcon from './assets/LocationPNG.png';
 import './App.css';
 
 function App() {
   const {
-    userText,
-    weights,
     coordinates,
+    userText,
     loading,
     results,
-    parsedData,
-    statusMessage,
-    setUserText,
-    setWeights,
+    error,
     setCoordinates,
+    setUserText,
     setLoading,
     setResults,
     setError,
-    setStatusMessage,
-    reset,
   } = useStore();
 
+  const [showMapModal, setShowMapModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   const handleGenerate = async () => {
-    if (!userText) {
-      setStatusMessage('Please describe your dream home.');
+    if (!userText || userText.length < 10) {
+      alert('Please describe your dream home (min. 10 characters).');
       return;
     }
-
     setLoading(true);
-    setResults(null);
-    setStatusMessage('Processing your request...');
-
+    setError(null);
     try {
-      const response = await generateFloorplan(userText, weights, coordinates);
-      setStatusMessage('Done! Here are the top 5 floor plans.');
-      setResults(response.data, response.parsed_data);
-    } catch (error) {
-      console.error(error);
-      setStatusMessage('Error: Failed to connect to the server. Please make sure the backend is running.');
-      setError(error.message);
+      const data = await generateFloorplan(coordinates, userText);
+      setResults(data);
+    } catch (err) {
+      setError(err.message || 'Generation failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWeightChange = (index, value) => {
-    const newWeights = [...weights];
-    newWeights[index] = value;
-    setWeights(newWeights);
+  const handleCoordinatesChange = (coords) => {
+    setCoordinates(coords);
+    setShowMapModal(false);
   };
 
   return (
     <div className="app-container">
+      {/* ===== NAV ===== */}
       <nav className="nav-bar">
         <div className="nav-content">
           <div className="nav-logo">
@@ -72,40 +63,46 @@ function App() {
         </div>
       </nav>
 
+      {/* ===== HERO ===== */}
       <section className="hero">
         <h1 className="hero-title">
           Design Your Dream Floor Plan<br />with Artificial Intelligence
         </h1>
         <p className="hero-subtitle">
-          Simply describe your home requirements, and FluX! will generate the 5 best floor plans 
+          Simply describe your home requirements, and FluX! will generate the 5 best floor plans
           optimised for energy efficiency and spatial quality.
         </p>
       </section>
 
+      {/* ===== INPUT SECTION ===== */}
       <section className="input-section">
         <div className="input-card">
-          <div className="input-header">
-            <h2 className="section-title">Describe Your Needs</h2>
-            <p className="section-subtitle">Write naturally – FluX! will understand and produce the best layouts.</p>
+          <div
+            className="input-header"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <h2 className="section-title">Describe Your Needs</h2>
+              <p className="section-subtitle">
+                Write naturally – FluX! will understand and produce the best layouts.
+              </p>
+            </div>
+            {/* Map Icon Button */}
+            <button
+              className="map-icon-btn"
+              onClick={() => setShowMapModal(true)}
+              title="Click to select location on map"
+            >
+              <img src={mapIcon} alt="Select location" className="map-icon-img" />
+            </button>
           </div>
 
           <div className="input-body">
-            {/* MAP PICKER */}
-            <div className="mb-6">
-              <label className="block font-medium mb-2 text-gray-700">Select Location (click on map)</label>
-              <MapPicker coordinates={coordinates} onCoordinatesChange={setCoordinates} />
-              <p className="text-xs text-gray-500 mt-1">
-                Latitude: {coordinates.lat.toFixed(5)}, Longitude: {coordinates.lng.toFixed(5)}
-              </p>
-            </div>
-
-            {/* NLP INPUT */}
-            <NLPInput
-              userText={userText}
-              onTextChange={setUserText}
-              weights={weights}
-              onWeightChange={handleWeightChange}
-            />
+            <NLPInput userText={userText} onTextChange={setUserText} />
 
             <button
               className={`apple-button ${loading ? 'apple-button-loading' : ''}`}
@@ -122,36 +119,46 @@ function App() {
               )}
             </button>
 
-            {statusMessage && (
-              <p
-                className={`status-message ${
-                  statusMessage.includes('Done')
-                    ? 'status-success'
-                    : statusMessage.includes('Error')
-                    ? 'status-error'
-                    : 'status-info'
-                }`}
-              >
-                {statusMessage}
-              </p>
-            )}
-
-            {parsedData && (
-              <div className="parsed-container">
-                <h4>AI Interpretation:</h4>
-                <pre className="parsed-json">
-                  {JSON.stringify(parsedData, null, 2)}
-                </pre>
-              </div>
-            )}
+            {error && <p className="status-message status-error">{error}</p>}
           </div>
         </div>
       </section>
 
-      {/* OUTPUT GALLERY */}
-      <OutputGallery results={results} onCardClick={setSelectedPlan} />
+      {/* ===== RESULTS ===== */}
+      {results && results.length > 0 && (
+        <section className="results-section">
+          <div className="results-header">
+            <h2 className="section-title">Top 5 Floor Plans for You</h2>
+            <p className="section-subtitle">
+              Based on your preferences, here are the highest‑scoring recommendations.
+            </p>
+          </div>
+          <OutputGallery results={results} onCardClick={setSelectedPlan} />
+        </section>
+      )}
 
-      {/* DETAIL MODAL */}
+      {/* ===== MAP MODAL ===== */}
+      {showMapModal && (
+        <div className="modal-overlay" onClick={() => setShowMapModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Select Location on Map</h3>
+              <button className="modal-close" onClick={() => setShowMapModal(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <MapPicker
+                coordinates={coordinates}
+                onCoordinatesChange={handleCoordinatesChange}
+              />
+              <p className="map-hint">Click on the map to pick a location – the modal will close automatically.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DETAIL MODAL ===== */}
       {selectedPlan && (
         <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
       )}

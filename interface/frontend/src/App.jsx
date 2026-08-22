@@ -1,63 +1,65 @@
 import { useState } from 'react';
-import MapPicker from './components/MapPicker'
-import NLPInput from './components/NLPInput'
-import OutputGallery from './components/OutputGallery'
-import useStore from './store/useStore'
-import { generateFloorplan } from './services/api'
-import './App.css'
-import mapIcon from './assets/LocationPNG.png';
+import MapPicker from './components/MapPicker';
+import NLPInput from './components/NLPInput';
+import OutputGallery from './components/OutputGallery';
 import DetailModal from './components/DetailModal';
+import useStore from './store/useStore';
+import { generateFloorplan } from './services/api';
+import mapIcon from './assets/LocationPNG.png';
+import './App.css';
+import 'leaflet/dist/leaflet.css';
 
 function App() {
-  const { 
-    coordinates, 
+  const {
+    coordinates,
     userText,
-    loading, 
-    results, 
-    error, 
-    setCoordinates, 
+    loading,
+    results,
+    error,
+    setCoordinates,
     setUserText,
-    setLoading, 
-    setResults, 
-    setError 
-  } = useStore()
+    setLoading,
+    setResults,
+    setError,
+  } = useStore();
 
-  // State untuk modal peta
-  const [showMapModal, setShowMapModal] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState(null)
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
   const handleGenerate = async () => {
     if (!userText || userText.length < 10) {
-      alert('Deskripsi minimal 10 karakter')
-      return
+      alert('Please describe your dream home (min. 10 characters).');
+      return;
     }
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const data = await generateFloorplan(coordinates, userText)
-      setResults(data)
+      const data = await generateFloorplan(coordinates, userText);
+      setResults(data);
     } catch (err) {
-      setError(err.message || 'Gagal generate')
+      setError(err.message || 'Generation failed.');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Fungsi untuk menutup modal setelah koordinat dipilih
   const handleCoordinatesChange = (coords) => {
-    setCoordinates(coords)
-    setShowMapModal(false) // tutup modal setelah klik
-  }
+    setCoordinates(coords);
+    setShowMapModal(false);
+  };
 
   return (
     <div className="app-container">
-      {/* ===== NAVIGASI ===== */}
+      {/* ===== NAV ===== */}
       <nav className="nav-bar">
         <div className="nav-content">
           <div className="nav-logo">
             <span className="logo-text">FluX!</span>
           </div>
           <div className="nav-links">
-            <a href="#" className="nav-link">Beranda</a>
-            <a href="#" className="nav-link">Tentang</a>
-            <button className="nav-cta">Mulai</button>
+            <a href="#" className="nav-link">Home</a>
+            <a href="#" className="nav-link">About</a>
+            <button className="nav-cta">Get Started</button>
           </div>
         </div>
       </nav>
@@ -65,39 +67,43 @@ function App() {
       {/* ===== HERO ===== */}
       <section className="hero">
         <h1 className="hero-title">
-          Desain Denah Impian<br />dengan Kecerdasan Buatan
+          Design Your Dream Floor Plan<br />with Artificial Intelligence
         </h1>
         <p className="hero-subtitle">
-          Cukup tuliskan kebutuhan rumah Anda, FluX! akan menghasilkan 5 denah terbaik 
-          yang optimal secara energi dan tata ruang.
+          Simply describe your home requirements, and FluX! will generate the 5 best floor plans
+          optimised for energy efficiency and spatial quality.
         </p>
       </section>
 
       {/* ===== INPUT SECTION ===== */}
       <section className="input-section">
         <div className="input-card">
-          <div className="input-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            className="input-header"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <div>
-              <h2 className="section-title">Deskripsikan Kebutuhan Anda</h2>
+              <h2 className="section-title">Describe Your Needs</h2>
               <p className="section-subtitle">
-                Tulis secara natural, FluX! akan memahami dan menghasilkan denah terbaik.
+                Write naturally – FluX! will understand and produce the best layouts.
               </p>
             </div>
-            {/* Ikon Peta di pojok kanan */}
-            <button 
-                className="map-icon-btn"
-                onClick={() => setShowMapModal(true)}
-                title="Klik untuk pilih lokasi di peta"
+            {/* Map Icon Button */}
+            <button
+              className="map-icon-btn"
+              onClick={() => setShowMapModal(true)}
+              title="Click to select location on map"
             >
-            <img src={mapIcon} alt="Pilih lokasi" className="map-icon-img" />
+              <img src={mapIcon} alt="Select location" className="map-icon-img" />
             </button>
           </div>
 
           <div className="input-body">
-            <NLPInput 
-              userText={userText}
-              onTextChange={setUserText}
-            />
+            <NLPInput userText={userText} onTextChange={setUserText} />
 
             <button
               className={`apple-button ${loading ? 'apple-button-loading' : ''}`}
@@ -107,58 +113,58 @@ function App() {
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Memproses...
+                  Processing...
                 </>
               ) : (
-                'Generate Denah'
+                'Generate Floor Plans'
               )}
             </button>
 
-            {error && (
-              <p className="status-message status-error">{error}</p>
-            )}
+            {error && <p className="status-message status-error">{error}</p>}
           </div>
         </div>
       </section>
 
-      {/* ===== HASIL ===== */}
-      {results && (
+      {/* ===== RESULTS ===== */}
+      {results && results.length > 0 && (
         <section className="results-section">
           <div className="results-header">
-            <h2 className="section-title">5 Denah Terbaik untuk Anda</h2>
+            <h2 className="section-title">Top 5 Floor Plans for You</h2>
             <p className="section-subtitle">
-              Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.
+              Based on your preferences, here are the highest‑scoring recommendations.
             </p>
           </div>
           <OutputGallery results={results} onCardClick={setSelectedPlan} />
         </section>
       )}
 
-      {/* ===== MODAL MAP PICKER ===== */}
+      {/* ===== MAP MODAL ===== */}
       {showMapModal && (
         <div className="modal-overlay" onClick={() => setShowMapModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Pilih Lokasi di Peta</h3>
-              <button className="modal-close" onClick={() => setShowMapModal(false)}>✕</button>
+              <h3>Select Location on Map</h3>
+              <button className="modal-close" onClick={() => setShowMapModal(false)}>
+                ✕
+              </button>
             </div>
             <div className="modal-body">
-              <MapPicker 
-                coordinates={coordinates} 
-                onCoordinatesChange={handleCoordinatesChange} 
+              <MapPicker
+                coordinates={coordinates}
+                onCoordinatesChange={handleCoordinatesChange}
               />
-              <p className="map-hint">Klik pada peta untuk memilih lokasi, peta akan otomatis tertutup.</p>
+              <p className="map-hint">Click on the map to pick a location – the modal will close automatically.</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* DETAIL MODAL */}
-        {selectedPlan && (
-            <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
+      {/* ===== DETAIL MODAL ===== */}
+      {selectedPlan && (
+        <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
