@@ -1,114 +1,213 @@
+import sys
+import os
+import logging
+import json
+import traceback
+import uuid
 import base64
-import io
-import random
-import re
-from PIL import Image, ImageDraw
-from typing import Dict, Any, List
-from api.schemas import FloorPlanData
+import tempfile
+from typing import Dict, Any, List, Optional
 
-def generate_floorplans(user_text: str, weights: List[float], location: Dict[str, float]) -> Dict[str, Any]:
-    """
-    Simulasi generate floor plan.
-    Data berasal dari user_text, bukan default.
-    """
-    parsed_data = extract_parsed_data(user_text)
+# Tambahkan root proyek ke sys.path
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
-    plans = []
-    for i in range(5):
-        image_base64 = generate_floorplan_image(parsed_data, i)
-        scores = {
-            "composite": round(0.75 + i * 0.04, 2),
-            "spatial_openness": round(random.uniform(0.6, 0.9), 2),
-            "circulation_efficiency": round(random.uniform(0.6, 0.9), 2),
-            "layout_rationality": round(random.uniform(0.6, 0.9), 2),
-            "adaptability": round(random.uniform(0.6, 0.9), 2),
-        }
-        plan = FloorPlanData(
-            id=f"plan_{i+1}",
-            rank=i+1,
-            image_url=f"data:image/png;base64,{image_base64}",
-            style=parsed_data.get("style", "Modern"),
-            scores=scores,
-            energy={
-                "EUI": round(random.uniform(70, 110), 1),
-                "total_area": parsed_data["area"],
-                "fire_safety_status": "OK"
-            },
-            suggestions={
-                "improvement": "Tambahkan ventilasi silang untuk meningkatkan sirkulasi udara.",
-                "layout": "Pertimbangkan penempatan dapur dekat ruang makan."
-            }
+from src.mcp.client.encoder_client import encode_text
+from src.nlp.decoder import validate_and_parse, DecoderError, MalformedJSONError, ValidationErrorDetail
+from src.agents.workflow.agentic_refine import AgenticWorkflow
+from src.mcp.client.mcp_client import MCPClient
+
+logger = logging.getLogger(__name__)
+
+
+class FloorPlanGenerationError(Exception):
+    """Custom exception for pipeline failures."""
+    pass
+
+
+def generate_floorplans(
+    user_text: str,
+    weights: Optional[List[float]] = None,
+    location: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Execute the full pipeline with AgenticWorkflow (custom mask + post-processing).
+
+    Args:
+        user_text: Natural language description of the floor plan.
+        weights: Optional list containing [mask_template, cond_scale] (currently ignored).
+        location: Optional dict with 'lat' and 'lon' (unused).
+
+    Returns:
+        Dict with 'data' (list of floor plan objects) and 'parsed_data' (metadata).
+    """
+    logger.info("[PIPELINE] Starting floor plan generation process with AgenticWorkflow.")
+
+    # ------------------------------------------------------------
+    # STEP 1: ENCODER (Kaggle Qwen)
+    # ------------------------------------------------------------
+    try:
+        encoder_url = os.getenv("ENCODER_URL")
+        if not encoder_url:
+            raise FloorPlanGenerationError("[ENCODER] ENCODER_URL not set in .env")
+
+        logger.info(f"[ENCODER] Request to {encoder_url}/encode_detailed")
+        logger.info(f"[ENCODER] Payload length: {len(user_text)} characters")
+
+        detailed_room_json = encode_text(user_text)
+
+        if not isinstance(detailed_room_json, dict):
+            raise FloorPlanGenerationError(f"[ENCODER] Invalid response type: {type(detailed_room_json)}")
+
+        room_count = len(detailed_room_json.get("rooms", []))
+        logger.info(f"[ENCODER] Extraction completed. Rooms found: {room_count}")
+
+    except Exception as e:
+        logger.error(f"[ENCODER] Failed: {e}\n{traceback.format_exc()}")
+        raise FloorPlanGenerationError(f"[ENCODER] {str(e)}") from e
+
+    # ------------------------------------------------------------
+    # STEP 2: DECODER (Pydantic validation)
+    # ------------------------------------------------------------
+    try:
+        logger.info("[DECODER] Validating JSON against Pydantic schema.")
+        validated_request = validate_and_parse(detailed_room_json)
+
+        total_area = validated_request.get_total_area()
+        room_counts = validated_request.get_room_counts()
+
+        logger.info(
+            f"[DECODER] Validation OK. Rooms: {len(validated_request.rooms)}, "
+            f"Area: {total_area:.2f} sqft, Counts: {room_counts}"
         )
-        plans.append(plan)
 
-    return {
-        "data": plans,
-        "parsed_data": parsed_data
-    }
+    except (MalformedJSONError, ValidationErrorDetail, DecoderError) as e:
+        logger.error(f"[DECODER] Validation failed: {e}")
+        raise FloorPlanGenerationError(f"[DECODER] {str(e)}") from e
+    except Exception as e:
+        logger.error(f"[DECODER] Unexpected error: {e}\n{traceback.format_exc()}")
+        raise FloorPlanGenerationError(f"[DECODER] {str(e)}") from e
 
-def extract_parsed_data(user_text: str) -> Dict[str, Any]:
-    """Ekstrak jumlah kamar, luas, gaya dari teks user."""
-    # Default jika tidak terbaca – tapi user_text wajib diisi, jadi minimal ada teks
-    rooms = 3
-    bathrooms = 2
-    area = 120
-    style = "Modern"
+    # ------------------------------------------------------------
+    # STEP 3: CONVERTER to ChatHouseDiffusion format
+    # ------------------------------------------------------------
+    try:
+        logger.info("[CONVERTER] Converting to CHD format.")
+        chd_rooms = validated_request.to_chd_format()
 
-    text = user_text.lower()
+        if not isinstance(chd_rooms, list):
+            raise FloorPlanGenerationError(f"[CONVERTER] Expected list, got {type(chd_rooms)}")
 
-    # Deteksi jumlah kamar tidur
-    match = re.search(r'(\d+)\s*kamar\s*tidur', text)
-    if match:
-        rooms = int(match.group(1))
+        logger.info(f"[CONVERTER] Conversion OK. {len(chd_rooms)} room entries.")
+        logger.info("[CONVERTER] CHD input structure:\n" + json.dumps(chd_rooms, indent=2))
 
-    # Deteksi jumlah kamar mandi
-    match = re.search(r'(\d+)\s*kamar\s*mandi', text)
-    if match:
-        bathrooms = int(match.group(1))
+    except Exception as e:
+        logger.error(f"[CONVERTER] Failed: {e}\n{traceback.format_exc()}")
+        raise FloorPlanGenerationError(f"[CONVERTER] {str(e)}") from e
 
-    # Deteksi luas (meter persegi)
-    match = re.search(r'(\d+)\s*(m2|meter|m\s*persegi)', text)
-    if match:
-        area = int(match.group(1))
+    # ------------------------------------------------------------
+    # STEP 4: GENERATE with CUSTOM MASK + POST-PROCESS (AgenticWorkflow)
+    # ------------------------------------------------------------
+    try:
+        chd_base_url = os.getenv("CHATHOUSE_URL")
+        if not chd_base_url:
+            raise FloorPlanGenerationError("[MCP_CLIENT] CHATHOUSE_URL not set in .env")
 
-    # Deteksi gaya
-    if "modern" in text:
-        style = "Modern"
-    elif "klasik" in text:
-        style = "Klasik"
-    elif "minimalis" in text:
-        style = "Minimalis"
+        logger.info(f"[MCP_CLIENT] Initializing AgenticWorkflow at {chd_base_url}")
 
-    return {
-        "rooms": rooms,
-        "bathrooms": bathrooms,
-        "area": area,
-        "style": style
-    }
+        # Initialize workflow (this also creates internal MCPClient)
+        workflow = AgenticWorkflow(mcp_url=chd_base_url)
 
-def generate_floorplan_image(parsed_data: Dict[str, Any], variant: int) -> str:
-    """Generate gambar denah sederhana (PNG base64)."""
-    width, height = 800, 600
-    image = Image.new("RGB", (width, height), "white")
-    draw = ImageDraw.Draw(image)
+        # 4a. Generate topological mask from room layout
+        logger.info("[MCP_CLIENT] Generating topological mask from room layout.")
+        custom_mask_b64 = workflow.generate_topological_mask(chd_rooms)
+        logger.info("[MCP_CLIENT] Topological mask generated successfully.")
 
-    # Gambar grid
-    draw.line([(0, height//2), (width, height//2)], fill="gray", width=1)
-    draw.line([(width//2, 0), (width//2, height)], fill="gray", width=1)
+        # 4b. Send generation request with custom_mask
+        client = MCPClient(base_url=chd_base_url)
+        cond_scale = 1.5  # default optimal value
+        logger.info(
+            f"[MCP_CLIENT] Sending generation request with custom_mask. "
+            f"Rooms: {len(chd_rooms)}, cond_scale: {cond_scale}"
+        )
 
-    room_count = parsed_data.get("rooms", 3)
-    colors = ["#FFDDCC", "#CCFFCC", "#CCCCFF", "#FFFFCC", "#FFCCFF"]
-    cell_w = width // 2
-    cell_h = height // 2
+        generation_result = client.generate_floorplan(
+            rooms=chd_rooms,
+            cond_scale=cond_scale,
+            custom_mask=custom_mask_b64
+        )
 
-    for i in range(min(room_count, 4)):  # batasi maks 4 agar tidak overflow
-        x = (i % 2) * cell_w + 20
-        y = (i // 2) * cell_h + 20
-        w = cell_w - 40
-        h = cell_h - 40
-        draw.rectangle([x, y, x+w, y+h], fill=colors[i % len(colors)], outline="black", width=2)
-        draw.text((x+10, y+10), f"Room {i+1}", fill="black")
+        # 4c. Extract image
+        images = generation_result.get("data") or generation_result.get("images", [])
+        if not images or not isinstance(images, list) or len(images) == 0:
+            raise FloorPlanGenerationError("[MCP_CLIENT] No images received from CHD server.")
 
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
+        raw_image = images[0]
+        if isinstance(raw_image, str) and raw_image.startswith("data:image"):
+            raw_image = raw_image.split(",")[1]
+
+        logger.info("[MCP_CLIENT] Raw image retrieved successfully.")
+
+        # 4d. Save to temporary file for post-processing
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            tmp_path = tmp.name
+            tmp.write(base64.b64decode(raw_image))
+        logger.info(f"[POST-PROCESS] Temporary image saved to {tmp_path}")
+
+        # 4e. Apply reconstruction (cleaning, noise removal, etc.)
+        logger.info("[POST-PROCESS] Starting reconstruction and analysis.")
+        workflow.apply_reconstruction(tmp_path)
+        logger.info("[POST-PROCESS] Reconstruction completed.")
+
+        # 4f. (Optional) Run analysis to get missing_count etc.
+        # We can analyze to log debug info, but we don't need to return it.
+        analysis = workflow.analyzer.analyze(tmp_path, chd_rooms)
+        logger.info(
+            f"[POST-PROCESS] Analysis: missing_count={analysis.get('missing_count', 0)}, "
+            f"location_errors={analysis.get('location_errors', 0)}"
+        )
+
+        # 4g. Read reconstructed image and encode to base64
+        with open(tmp_path, "rb") as f:
+            reconstructed_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+        # 4h. Clean up temporary file
+        os.unlink(tmp_path)
+        logger.info("[POST-PROCESS] Temporary file cleaned up.")
+
+        # 4i. Prepare final data
+        image_url = f"data:image/png;base64,{reconstructed_b64}"
+        floor_plan = {
+            "id": str(uuid.uuid4()),
+            "image_url": image_url,
+            "scores": {},       # placeholder for RFPA ranking
+            "rank": 1
+        }
+
+    except Exception as e:
+        logger.error(f"[MCP_CLIENT] Generation or post-processing failed: {e}\n{traceback.format_exc()}")
+        raise FloorPlanGenerationError(f"[MCP_CLIENT] {str(e)}") from e
+
+    # ------------------------------------------------------------
+    # STEP 5: FINAL RESPONSE
+    # ------------------------------------------------------------
+    try:
+        logger.info("[PIPELINE] Assembling final response.")
+        final_response = {
+            "data": [floor_plan],
+            "parsed_data": {
+                "validated_rooms": validated_request.model_dump(),
+                "chd_format": chd_rooms,
+                "total_area_sqft": validated_request.get_total_area(),
+                "room_counts": validated_request.get_room_counts(),
+                "generation_meta": generation_result.get("meta", {}),
+                "analysis": analysis  # optional debug info
+            }
+        }
+        logger.info("[PIPELINE] Pipeline finished successfully.")
+        return final_response
+
+    except Exception as e:
+        logger.error(f"[PIPELINE] Assembly failed: {e}")
+        raise FloorPlanGenerationError(f"[PIPELINE] {str(e)}") from e
