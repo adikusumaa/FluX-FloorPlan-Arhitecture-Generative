@@ -16,28 +16,28 @@ def run_test():
         {
             "name": "master bedroom",
             "category": "MasterRoom",
-            "size": "S",
+            "size": "M",
             "location": "Unknown",
             "links": ["living room"]
         },
         {
             "name": "bathroom 1",
             "category": "Bathroom",
-            "size": "S",
+            "size": "XS",
             "location": "north",
             "links": ["living room"]
         },
         {
             "name": "bathroom 2",
             "category": "Bathroom",
-            "size": "S",
+            "size": "XS",
             "location": "north",
             "links": ["living room"]
         },
         {
             "name": "living room",
             "category": "LivingRoom",
-            "size": "S",
+            "size": "M",
             "location": "Unknown",
             "links": ["master bedroom"]
         },

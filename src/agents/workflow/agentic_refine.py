@@ -15,10 +15,16 @@ class AgenticWorkflow:
     def __init__(self, mcp_url: str):
         self.client = MCPClient(mcp_url)
         self.analyzer = FloorplanAnalyzer(min_area_threshold=40)
-        self.size_weights = {"XS": 6, "S": 8, "M": 12, "L": 16, "XL": 20}
+        self.size_weights = {"XS": 10, "S": 12, "M": 16, "L": 20, "XL": 26}
         self.valid_colors_rgb = [
-            [238, 232, 170], [255, 165, 0], [240, 128, 128],
-            [173, 216, 210], [107, 142, 35], [255, 215, 0]
+            [238, 232, 170],  # LivingRoom
+            [255, 165, 0],    # MasterRoom
+            [240, 128, 128],  # Kitchen
+            [173, 216, 210],  # Bathroom
+            [107, 142, 35],   # Balcony
+            [218, 112, 214],  # DinningRoom
+            [216, 191, 216],  # Storage
+            [255, 215, 0]     # CommonRoom (akan di-map ke LivingRoom di converter)
         ]
 
     def generate_topological_mask(self, rooms: List[Dict]) -> str:

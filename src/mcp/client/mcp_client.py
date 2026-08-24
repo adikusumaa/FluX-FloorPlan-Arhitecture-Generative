@@ -20,12 +20,13 @@ class MCPClient:
     ) -> Dict[str, Any]:
         """
         Send generation request to ChatHouseDiffusion server.
+        Now the graph (rooms) is the main conditioning; custom_mask is optional.
 
         Args:
             rooms: List of room dicts with keys: name, category, size, location, links.
-            mask_template: Template index for mask (0-9).
-            cond_scale: Conditioning scale.
-            custom_mask: Optional custom mask string.
+            mask_template: Template index for mask (0-9) - used only if custom_mask is None.
+            cond_scale: Conditioning scale for classifier-free guidance.
+            custom_mask: Optional custom mask (base64). If None, server uses blank mask.
 
         Returns:
             Dict with 'status', 'data' (list of base64 images), and optional 'meta'.
@@ -41,7 +42,6 @@ class MCPClient:
 
         headers = {"Content-Type": "application/json"}
 
-        # Log input payload (truncate if too long)
         payload_str = json.dumps(payload, indent=2)
         logger.debug(f"[MCP_CLIENT] Request payload: {payload_str[:1000]}...")
 
@@ -54,7 +54,6 @@ class MCPClient:
             )
             response.raise_for_status()
 
-            # Parse response
             result = response.json()
             logger.info(f"[MCP_CLIENT] Raw response keys: {list(result.keys())}")
 
@@ -64,11 +63,9 @@ class MCPClient:
             elif "images" in result and isinstance(result["images"], list):
                 images = result["images"]
             elif isinstance(result, list):
-                # If response is directly a list of images
                 images = result
                 result = {"data": images}
             else:
-                # Try to find any list value in response
                 images = None
                 for key, value in result.items():
                     if isinstance(value, list) and len(value) > 0:
@@ -77,7 +74,6 @@ class MCPClient:
                 if images is None:
                     images = []
 
-            # Ensure 'data' key exists
             if "data" not in result:
                 result["data"] = images
 

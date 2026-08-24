@@ -14,9 +14,9 @@ class FloorplanAnalyzer:
             "Kitchen": [240, 128, 128],
             "Bathroom": [173, 216, 210],
             "Balcony": [107, 142, 35],
-            "DinningRoom": [218, 112, 214],
-            "Storage": [216, 191, 216],
-            "CommonRoom": [255, 215, 0] 
+            "DiningRoom": [218, 112, 214],      # typo diperbaiki
+            "Storage": [221, 160, 221],         # warna disamakan dengan model
+            "CommonRoom": [255, 215, 0]
         }
         self.total_pixels = 64 * 64
         self.max_area_limits = {
@@ -31,25 +31,25 @@ class FloorplanAnalyzer:
         if img is None:
             logging.error(f"Cannot read image at {image_path}")
             return {
-                "missing_rooms": target_rooms, 
-                "detected_rooms": [], 
-                "missing_count": len(target_rooms), 
-                "location_errors": 0, 
+                "missing_rooms": target_rooms,
+                "detected_rooms": [],
+                "missing_count": len(target_rooms),
+                "location_errors": 0,
                 "total_penalty": float('inf')
             }
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
+
         detected_blobs = {cat: [] for cat in self.color_map}
         living_room_centroid = (32, 32)
-        
+
         for category, color in self.color_map.items():
             lower = np.array(color, dtype=np.uint8)
             upper = np.array(color, dtype=np.uint8)
             mask = cv2.inRange(img, lower, upper)
-            
+
             num_labels, _, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=4)
-            
+
             valid_blobs = []
             for i in range(1, num_labels):
                 area = stats[i, cv2.CC_STAT_AREA]
@@ -58,10 +58,10 @@ class FloorplanAnalyzer:
                         "area": int(area),
                         "centroid": (int(centroids[i][0]), int(centroids[i][1]))
                     })
-            
+
             valid_blobs.sort(key=lambda x: x["area"], reverse=True)
             detected_blobs[category] = valid_blobs
-            
+
             if category == "LivingRoom" and valid_blobs:
                 living_room_centroid = valid_blobs[0]["centroid"]
 
@@ -69,39 +69,39 @@ class FloorplanAnalyzer:
         detected_rooms_data = []
         location_errors = 0
         assigned_counts = {cat: 0 for cat in self.color_map}
-        
+
         for room in target_rooms:
             mapped_cat = room.get("category", "")
-            
+
             blobs = detected_blobs.get(mapped_cat, [])
             assigned_idx = assigned_counts.get(mapped_cat, 0)
-            
+
             req_size = room.get("size", "M")
             max_allowed_area = self.max_area_limits.get(req_size, 600)
-            
+
             if assigned_idx < len(blobs):
                 blob = blobs[assigned_idx]
-                
+
                 if blob["area"] > max_allowed_area:
                     missing_rooms.append(room)
                     continue
-                    
+
                 assigned_counts[mapped_cat] += 1
-                
+
                 req_loc = room.get("location", "center")
                 dx = blob["centroid"][0] - living_room_centroid[0]
                 dy = blob["centroid"][1] - living_room_centroid[1]
-                
+
                 actual_loc = "center"
                 if abs(dx) > 5 or abs(dy) > 5:
                     if abs(dx) > abs(dy):
                         actual_loc = "east" if dx > 0 else "west"
                     else:
                         actual_loc = "south" if dy > 0 else "north"
-                        
+
                 if req_loc not in ["Unknown", "center"] and req_loc not in actual_loc:
                     location_errors += 1
-                    
+
                 detected_rooms_data.append({
                     "category": mapped_cat,
                     "name": room.get("name", ""),

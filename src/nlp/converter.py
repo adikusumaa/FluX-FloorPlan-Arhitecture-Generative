@@ -7,7 +7,7 @@ Output: list of dict dengan key: name, category, size, location, links.
 import re
 from typing import List, Dict, Any, Union
 
-# Pemetaan tipe ruangan (dari decoder/schemas) ke kategori model CHD
+# Pemetaan tipe ruangan ke kategori model CHD
 TYPE_TO_CATEGORY = {
     "bedroom": "MasterRoom",
     "bathroom": "Bathroom",
@@ -15,7 +15,7 @@ TYPE_TO_CATEGORY = {
     "kitchen": "Kitchen",
     "balcony": "Balcony",
     "dining_room": "DiningRoom",
-    "common_room": "Unknown",
+    "common_room": "LivingRoom",  # <-- PERUBAHAN: map common_room ke LivingRoom
     "storage": "Storage",
     "study_room": "StudyRoom",
     "child_room": "ChildRoom",
@@ -59,8 +59,8 @@ def _normalize_size(size) -> str:
     return "M"
 
 def _extract_direction(location_text: str) -> str:
-    if not location_text:
-        return "Unknown"
+    if not location_text or location_text.lower() == "unknown":
+        return "center"
     text = location_text.lower()
     dirs = []
     if "north" in text: dirs.append("north")
@@ -71,7 +71,7 @@ def _extract_direction(location_text: str) -> str:
         if not dirs:
             return "center"
     if not dirs:
-        return "Unknown"
+        return "center"
     if len(dirs) == 1:
         return dirs[0]
     vertical = [d for d in dirs if d in ("north", "south")]
@@ -81,23 +81,11 @@ def _extract_direction(location_text: str) -> str:
     return dirs[0] + dirs[1] if len(dirs) >= 2 else dirs[0]
 
 def _build_links(rooms: list, room_name: str) -> list:
-    """
-    Buat links sederhana: hubungkan ruangan yang lokasinya berdekatan.
-    Jika tidak ada petunjuk, hubungkan ke living room (jika ada) atau ruang pertama.
-    """
     if not rooms:
         return []
-    current = next((r for r in rooms if r.get("name") == room_name), None)
-    if not current:
-        return []
-
-    # Cari living room sebagai pusat
     living = next((r for r in rooms if r.get("type") == "living_room" or r.get("category") == "LivingRoom"), None)
     if living and living.get("name") != room_name:
         return [living["name"]]
-
-    # Fallback: hubungkan dengan ruangan terdekat berdasarkan lokasi
-    # Untuk kesederhanaan, hubungkan ke ruangan pertama yang bukan dirinya
     first = next((r for r in rooms if r.get("name") != room_name), None)
     return [first["name"]] if first else []
 
@@ -118,9 +106,9 @@ def convert_to_chd_format(parsed: Union[dict, list]) -> List[Dict[str, Any]]:
 
         name = room.get('name', 'Unknown')
         type_ = room.get('type', 'unknown')
-        category = room.get('category', TYPE_TO_CATEGORY.get(type_, 'Unknown'))
+        category = room.get('category', TYPE_TO_CATEGORY.get(type_, 'LivingRoom'))  # fallback ke LivingRoom
         size = _normalize_size(room.get('size', 'M'))
-        location = _extract_direction(room.get('location', 'Unknown'))
+        location = _extract_direction(room.get('location', 'center'))
         links = room.get('links', [])
 
         if not links:
