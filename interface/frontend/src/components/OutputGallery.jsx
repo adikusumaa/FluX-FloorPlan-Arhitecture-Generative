@@ -13,9 +13,9 @@ export default function OutputGallery({ results, onCardClick }) {
   return (
     <section className="results-section">
       <div className="results-header">
-        <h2 className="section-title">5 Denah Terbaik untuk Anda</h2>
+        <h2 className="section-title">Top 5 Floor Plans for You</h2>
         <p className="section-subtitle">
-          Berdasarkan preferensi Anda, berikut rekomendasi denah dengan skor tertinggi.
+          Based on your preferences, here are the highest‑scoring floor plan recommendations.
         </p>
       </div>
 
@@ -28,7 +28,7 @@ export default function OutputGallery({ results, onCardClick }) {
             style={{ cursor: 'pointer' }}
           >
             <div className="result-card-image">
-              <img src={plan.image_url} alt={plan.id || `Denah ${index + 1}`} />
+              <img src={plan.image_url} alt={plan.id || `Floor Plan ${index + 1}`} />
               <div className="result-card-badge">#{plan.rank || index + 1}</div>
             </div>
 
@@ -46,7 +46,7 @@ export default function OutputGallery({ results, onCardClick }) {
                   <span className="stat-value">{plan.energy?.EUI || '-'} kWh/m²</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">Luas</span>
+                  <span className="stat-label">Area</span>
                   <span className="stat-value">{plan.energy?.total_area || '-'} m²</span>
                 </div>
                 <div className="stat-item">

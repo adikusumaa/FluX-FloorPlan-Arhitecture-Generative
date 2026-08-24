@@ -175,16 +175,16 @@ Fallback – Jika API gagal, berikan nilai default (misal: suhu 25°C, kelembaba
 ### E. Fitur Integrasi Cloud: MCP Server (Kaggle) & Generation (ChatHouseDiffusion)
 
 *   **Dev (Kaggle Cloud - `mcp_server.py`):**
-    *   [ ] Konfigurasi FastAPI dan `pyngrok` di dalam *notebook* Kaggle untuk membuka URL publik.
-    *   [ ] Inisialisasi pembacaan memori GPU menggunakan `torch.device('cuda')`.
-    *   [ ] Pemuatan file bobot `model-98.pt` ke VRAM GPU.
-    *   [ ] Pembuatan endpoint POST `/mcp/tools/generate_floorplans` yang menerima parameter denah, mengeksekusi model (10 iterasi), dan mengonversi tensor keluaran menjadi *list of strings* (Base64).
+    *   [x] Konfigurasi FastAPI dan `pyngrok` di dalam *notebook* Kaggle untuk membuka URL publik.
+    *   [x] Inisialisasi pembacaan memori GPU menggunakan `torch.device('cuda')`.
+    *   [x] Pemuatan file bobot `model-98.pt` ke VRAM GPU.
+    *   [x] Pembuatan endpoint POST `/mcp/tools/generate_floorplans` yang menerima parameter denah, mengeksekusi model (10 iterasi), dan mengonversi tensor keluaran menjadi *list of strings* (Base64).
 *   **Dev (Local - `mcp_client.py`):**
-    *   [ ] Implementasi Python `requests` dengan *timeout* tinggi (misal: 120 detik) untuk mengakomodasi waktu inferensi GPU.
-    *   [ ] Parsing HTTP *response* kembali menjadi format data yang dikenali oleh lokal.
+    *   [x] Implementasi Python `requests` dengan *timeout* tinggi (misal: 120 detik) untuk mengakomodasi waktu inferensi GPU.
+    *   [x] Parsing HTTP *response* kembali menjadi format data yang dikenali oleh lokal.
 *   **Test:**
-    *   [ ] Pengecekan stabilitas koneksi memori GPU di Kaggle (Cek log penggunaan VRAM).
-    *   [ ] Pengujian *round-trip* dari pengiriman parameter lokal hingga penerimaan *string* Base64 utuh.
+    *   [x] Pengecekan stabilitas koneksi memori GPU di Kaggle (Cek log penggunaan VRAM).
+    *   [x] Pengujian *round-trip* dari pengiriman parameter lokal hingga penerimaan *string* Base64 utuh.
 
 ### F. Fitur AI Agent Orkestrasi (CrewAI)
 

@@ -5,7 +5,7 @@ export default function NLPInput({ userText, onTextChange }) {
     <textarea
       className="apple-textarea"
       rows="4"
-      placeholder="Contoh: Saya mau rumah 3 kamar tidur, 2 kamar mandi, luas 120m², dengan ruang tamu yang luas. Saya seorang lansia, jadi ingin akses mudah."
+      placeholder="Example: I want a house with 3 bedrooms, 2 bathrooms, 120m², with a spacious living room. I am elderly, so I want easy access."
       value={userText}
       onChange={(e) => onTextChange(e.target.value)}
     />
