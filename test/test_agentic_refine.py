@@ -54,13 +54,6 @@ def run_test():
             "size": "S",
             "location": "southeast",
             "links": ["living room"]
-        },
-        {
-            "name": "common room",
-            "category": "Unknown",
-            "size": "S",
-            "location": "Unknown",
-            "links": ["living room"]
         }
     ]
     

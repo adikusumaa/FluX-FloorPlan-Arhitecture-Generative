@@ -16,17 +16,18 @@ class MCPClient:
         rooms: List[Dict],
         mask_template: int = 0,
         cond_scale: float = 1.5,
-        custom_mask: Optional[str] = None
+        custom_mask: Optional[str] = None,
+        seed: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Send generation request to ChatHouseDiffusion server.
-        Now the graph (rooms) is the main conditioning; custom_mask is optional.
 
         Args:
             rooms: List of room dicts with keys: name, category, size, location, links.
-            mask_template: Template index for mask (0-9) - used only if custom_mask is None.
+            mask_template: Template index for mask (0-3).
             cond_scale: Conditioning scale for classifier-free guidance.
             custom_mask: Optional custom mask (base64). If None, server uses blank mask.
+            seed: Optional seed for reproducibility. If None, server generates its own.
 
         Returns:
             Dict with 'status', 'data' (list of base64 images), and optional 'meta'.
@@ -39,6 +40,8 @@ class MCPClient:
         }
         if custom_mask:
             payload["custom_mask"] = custom_mask
+        if seed is not None:
+            payload["seed"] = seed
 
         headers = {"Content-Type": "application/json"}
 

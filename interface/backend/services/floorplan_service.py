@@ -6,6 +6,7 @@ import traceback
 import uuid
 import base64
 import tempfile
+import time
 from typing import Dict, Any, List, Optional
 
 import cv2
@@ -27,6 +28,14 @@ logger = logging.getLogger(__name__)
 
 class FloorPlanGenerationError(Exception):
     pass
+
+
+def calculate_score(analysis: Dict[str, Any]) -> float:
+    """Hitung composite score sederhana untuk ranking."""
+    missing = analysis.get("missing_count", 0)
+    loc_err = analysis.get("location_errors", 0)
+    score = 100.0 - (missing * 10) - (loc_err * 5)
+    return max(0.0, score)
 
 
 def generate_floorplans(
@@ -88,7 +97,7 @@ def generate_floorplans(
         raise FloorPlanGenerationError(f"[CONVERTER] {str(e)}") from e
 
     # ------------------------------------------------------------
-    # STEP 4: GENERATE + POST‑PROCESS + UPSCALE
+    # STEP 4: GENERATE 15 VARIANTS + POST-PROCESS + RANKING
     # ------------------------------------------------------------
     try:
         chd_base_url = os.getenv("CHATHOUSE_URL")
@@ -98,88 +107,109 @@ def generate_floorplans(
         logger.info(f"[MCP_CLIENT] Initializing AgenticWorkflow at {chd_base_url}")
         workflow = AgenticWorkflow(mcp_url=chd_base_url)
 
-        # 4a. Topological mask
+        # 4a. Topological mask (sama untuk semua varian)
         logger.info("[MCP_CLIENT] Generating topological mask from room layout.")
         custom_mask_b64 = workflow.generate_topological_mask(chd_rooms)
         logger.info("[MCP_CLIENT] Topological mask generated successfully.")
 
-        # 4b. Generate
         client = MCPClient(base_url=chd_base_url)
         cond_scale = 1.5
-        logger.info(f"[MCP_CLIENT] Sending generation request with custom_mask. Rooms: {len(chd_rooms)}, cond_scale: {cond_scale}")
-        generation_result = client.generate_floorplan(
-            rooms=chd_rooms,
-            cond_scale=cond_scale,
-            custom_mask=custom_mask_b64
-        )
+        NUM_VARIANTS = 15
+        TOP_K = 5
 
-        # 4c. Extract image
-        images = generation_result.get("data") or generation_result.get("images", [])
-        if not images or not isinstance(images, list) or len(images) == 0:
-            raise FloorPlanGenerationError("[MCP_CLIENT] No images received from CHD server.")
-        raw_image = images[0]
-        if isinstance(raw_image, str) and raw_image.startswith("data:image"):
-            raw_image = raw_image.split(",")[1]
+        candidates = []
 
-        logger.info("[MCP_CLIENT] Raw image retrieved successfully.")
+        for idx in range(NUM_VARIANTS):
+            seed = 1000 + idx * 17   # seed unik, bisa juga int(time.time()*1000)+idx
+            logger.info(f"[MCP_CLIENT] Generating variant {idx+1}/{NUM_VARIANTS} with seed={seed}")
 
-        # 4d. Save temporary
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            tmp_path = tmp.name
-            tmp.write(base64.b64decode(raw_image))
-        logger.info(f"[POST-PROCESS] Temporary image saved to {tmp_path}")
+            generation_result = client.generate_floorplan(
+                rooms=chd_rooms,
+                cond_scale=cond_scale,
+                custom_mask=custom_mask_b64,
+                seed=seed
+            )
 
-        # 4e. Reconstruction
-        logger.info("[POST-PROCESS] Starting reconstruction and analysis.")
-        workflow.apply_reconstruction(tmp_path)
-        logger.info("[POST-PROCESS] Reconstruction completed.")
+            # Extract image
+            images = generation_result.get("data") or generation_result.get("images", [])
+            if not images or not isinstance(images, list) or len(images) == 0:
+                logger.warning(f"[MCP_CLIENT] Variant {idx+1}: No images received, skipping.")
+                continue
+            raw_image = images[0]
+            if isinstance(raw_image, str) and raw_image.startswith("data:image"):
+                raw_image = raw_image.split(",")[1]
 
-        # 4f. Analysis (optional)
-        analysis = workflow.analyzer.analyze(tmp_path, chd_rooms)
-        logger.info(
-            f"[POST-PROCESS] Analysis: missing_count={analysis.get('missing_count', 0)}, "
-            f"location_errors={analysis.get('location_errors', 0)}"
-        )
+            # Save temporary for analysis and post-processing
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.write(base64.b64decode(raw_image))
+            logger.info(f"[POST-PROCESS] Variant {idx+1}: temp saved to {tmp_path}")
 
-        # ============================================================
-        # 4g. UPSCALE dengan NEAREST NEIGHBOR (tajam, tidak buram)
-        # ============================================================
-        logger.info("[POST-PROCESS] Upscaling image with NEAREST interpolation (sharp edges).")
-        img = cv2.imread(tmp_path)
-        if img is None:
-            raise FloorPlanGenerationError("[POST-PROCESS] Failed to read reconstructed image for upscaling.")
+            # Reconstruction
+            logger.info(f"[POST-PROCESS] Variant {idx+1}: applying reconstruction.")
+            workflow.apply_reconstruction(tmp_path)
 
-        h, w = img.shape[:2]
-        scale_factor = 8  # 64x64 -> 512x512
-        new_w, new_h = w * scale_factor, h * scale_factor
+            # Analysis
+            analysis = workflow.analyzer.analyze(tmp_path, chd_rooms)
+            missing = analysis.get("missing_count", 0)
+            loc_err = analysis.get("location_errors", 0)
+            score = calculate_score(analysis)
+            logger.info(
+                f"[POST-PROCESS] Variant {idx+1}: missing={missing}, loc_errors={loc_err}, score={score:.2f}"
+            )
 
-        # Gunakan INTER_NEAREST untuk pixel-art sharp
-        img_hd = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
-        cv2.imwrite(tmp_path, img_hd)
-        logger.info(f"[POST-PROCESS] Upscaled to {new_w}x{new_h} using NEAREST.")
+            # Upscale with NEAREST
+            img = cv2.imread(tmp_path)
+            if img is None:
+                logger.warning(f"[POST-PROCESS] Variant {idx+1}: failed to read image, skipping upscale.")
+                os.unlink(tmp_path)
+                continue
+            h, w = img.shape[:2]
+            scale_factor = 8
+            new_w, new_h = w * scale_factor, h * scale_factor
+            img_hd = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+            cv2.imwrite(tmp_path, img_hd)
+            logger.info(f"[POST-PROCESS] Variant {idx+1}: upscaled to {new_w}x{new_h} using NEAREST.")
 
-        # 4h. (Opsional) Set DPI metadata ke 300 menggunakan PIL
-        # Ini hanya metadata, tidak memengaruhi tampilan web, tapi bagus untuk cetak.
-        with Image.open(tmp_path) as pil_img:
-            pil_img.save(tmp_path, dpi=(300, 300))
-        logger.info("[POST-PROCESS] DPI metadata set to 300.")
+            # Optional DPI metadata
+            with Image.open(tmp_path) as pil_img:
+                pil_img.save(tmp_path, dpi=(300, 300))
 
-        # 4i. Baca dan encode base64
-        with open(tmp_path, "rb") as f:
-            reconstructed_b64 = base64.b64encode(f.read()).decode('utf-8')
+            # Read as base64
+            with open(tmp_path, "rb") as f:
+                reconstructed_b64 = base64.b64encode(f.read()).decode('utf-8')
 
-        # 4j. Clean up
-        os.unlink(tmp_path)
-        logger.info("[POST-PROCESS] Temporary file cleaned up.")
+            # Clean up temp
+            os.unlink(tmp_path)
+            logger.info(f"[POST-PROCESS] Variant {idx+1}: temp file cleaned up.")
 
-        # 4k. Siapkan response
-        image_url = f"data:image/png;base64,{reconstructed_b64}"
-        floor_plan = {
-            "id": str(uuid.uuid4()),
-            "image_url": image_url,
-            "scores": {},
-            "rank": 1
-        }
+            # Save candidate
+            candidate = {
+                "id": str(uuid.uuid4()),
+                "image_url": f"data:image/png;base64,{reconstructed_b64}",
+                "seed": seed,
+                "rank": 0,  # akan diisi setelah sorting
+                "scores": {
+                    "composite": score,
+                    "missing_count": missing,
+                    "location_errors": loc_err
+                },
+                "analysis": analysis
+            }
+            candidates.append(candidate)
+
+        if not candidates:
+            raise FloorPlanGenerationError("[MCP_CLIENT] No valid variants generated.")
+
+        # Ranking
+        candidates.sort(key=lambda x: x["scores"]["composite"], reverse=True)
+        top_candidates = candidates[:TOP_K]
+        for i, cand in enumerate(top_candidates):
+            cand["rank"] = i + 1
+
+        logger.info(f"[PIPELINE] Ranking completed. Returning top {len(top_candidates)} floor plans.")
+        for cand in top_candidates:
+            logger.info(f"  Rank {cand['rank']}: {cand['id']} score={cand['scores']['composite']:.2f}")
 
     except Exception as e:
         logger.error(f"[MCP_CLIENT] Generation or post-processing failed: {e}\n{traceback.format_exc()}")
@@ -191,14 +221,23 @@ def generate_floorplans(
     try:
         logger.info("[PIPELINE] Assembling final response.")
         final_response = {
-            "data": [floor_plan],
+            "data": top_candidates,   # <-- hanya 5 terbaik
             "parsed_data": {
                 "validated_rooms": validated_request.model_dump(),
                 "chd_format": chd_rooms,
                 "total_area_sqft": validated_request.get_total_area(),
                 "room_counts": validated_request.get_room_counts(),
                 "generation_meta": generation_result.get("meta", {}),
-                "analysis": analysis
+                "analysis_summary": [
+                    {
+                        "rank": cand["rank"],
+                        "seed": cand["seed"],
+                        "score": cand["scores"]["composite"],
+                        "missing_count": cand["scores"]["missing_count"],
+                        "location_errors": cand["scores"]["location_errors"]
+                    }
+                    for cand in top_candidates
+                ]
             }
         }
         logger.info("[PIPELINE] Pipeline finished successfully.")
