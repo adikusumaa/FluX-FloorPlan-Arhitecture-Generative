@@ -6,14 +6,11 @@ import traceback
 import uuid
 import base64
 import tempfile
-import time
 from typing import Dict, Any, List, Optional
-
 import cv2
 import numpy as np
 from PIL import Image
 
-# Tambahkan root proyek ke sys.path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
@@ -25,18 +22,14 @@ from src.mcp.client.mcp_client import MCPClient
 
 logger = logging.getLogger(__name__)
 
-
 class FloorPlanGenerationError(Exception):
     pass
 
-
 def calculate_score(analysis: Dict[str, Any]) -> float:
-    """Hitung composite score sederhana untuk ranking."""
     missing = analysis.get("missing_count", 0)
     loc_err = analysis.get("location_errors", 0)
     score = 100.0 - (missing * 10) - (loc_err * 5)
     return max(0.0, score)
-
 
 def generate_floorplans(
     user_text: str,
@@ -45,9 +38,6 @@ def generate_floorplans(
 ) -> Dict[str, Any]:
     logger.info("[PIPELINE] Starting floor plan generation process with AgenticWorkflow.")
 
-    # ------------------------------------------------------------
-    # STEP 1: ENCODER
-    # ------------------------------------------------------------
     try:
         encoder_url = os.getenv("ENCODER_URL")
         if not encoder_url:
@@ -63,9 +53,6 @@ def generate_floorplans(
         logger.error(f"[ENCODER] Failed: {e}\n{traceback.format_exc()}")
         raise FloorPlanGenerationError(f"[ENCODER] {str(e)}") from e
 
-    # ------------------------------------------------------------
-    # STEP 2: DECODER
-    # ------------------------------------------------------------
     try:
         logger.info("[DECODER] Validating JSON against Pydantic schema.")
         validated_request = validate_and_parse(detailed_room_json)
@@ -82,9 +69,6 @@ def generate_floorplans(
         logger.error(f"[DECODER] Unexpected error: {e}\n{traceback.format_exc()}")
         raise FloorPlanGenerationError(f"[DECODER] {str(e)}") from e
 
-    # ------------------------------------------------------------
-    # STEP 3: CONVERTER
-    # ------------------------------------------------------------
     try:
         logger.info("[CONVERTER] Converting to CHD format.")
         chd_rooms = validated_request.to_chd_format()
@@ -96,9 +80,6 @@ def generate_floorplans(
         logger.error(f"[CONVERTER] Failed: {e}\n{traceback.format_exc()}")
         raise FloorPlanGenerationError(f"[CONVERTER] {str(e)}") from e
 
-    # ------------------------------------------------------------
-    # STEP 4: GENERATE 15 VARIANTS + POST-PROCESS + RANKING
-    # ------------------------------------------------------------
     try:
         chd_base_url = os.getenv("CHATHOUSE_URL")
         if not chd_base_url:
@@ -106,22 +87,19 @@ def generate_floorplans(
 
         logger.info(f"[MCP_CLIENT] Initializing AgenticWorkflow at {chd_base_url}")
         workflow = AgenticWorkflow(mcp_url=chd_base_url)
-
-        # 4a. Topological mask (sama untuk semua varian)
-        logger.info("[MCP_CLIENT] Generating topological mask from room layout.")
-        custom_mask_b64 = workflow.generate_topological_mask(chd_rooms)
-        logger.info("[MCP_CLIENT] Topological mask generated successfully.")
-
         client = MCPClient(base_url=chd_base_url)
+        
         cond_scale = 1.5
         NUM_VARIANTS = 15
         TOP_K = 5
-
         candidates = []
 
         for idx in range(NUM_VARIANTS):
-            seed = 1000 + idx * 17   # seed unik, bisa juga int(time.time()*1000)+idx
+            seed = 1000 + idx * 17
             logger.info(f"[MCP_CLIENT] Generating variant {idx+1}/{NUM_VARIANTS} with seed={seed}")
+
+            logger.info(f"[MCP_CLIENT] Generating topological mask for variant {idx+1}.")
+            custom_mask_b64 = workflow.generate_topological_mask(chd_rooms, seed=seed)
 
             generation_result = client.generate_floorplan(
                 rooms=chd_rooms,
@@ -130,7 +108,6 @@ def generate_floorplans(
                 seed=seed
             )
 
-            # Extract image
             images = generation_result.get("data") or generation_result.get("images", [])
             if not images or not isinstance(images, list) or len(images) == 0:
                 logger.warning(f"[MCP_CLIENT] Variant {idx+1}: No images received, skipping.")
@@ -139,17 +116,14 @@ def generate_floorplans(
             if isinstance(raw_image, str) and raw_image.startswith("data:image"):
                 raw_image = raw_image.split(",")[1]
 
-            # Save temporary for analysis and post-processing
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
                 tmp_path = tmp.name
                 tmp.write(base64.b64decode(raw_image))
             logger.info(f"[POST-PROCESS] Variant {idx+1}: temp saved to {tmp_path}")
 
-            # Reconstruction
             logger.info(f"[POST-PROCESS] Variant {idx+1}: applying reconstruction.")
             workflow.apply_reconstruction(tmp_path)
 
-            # Analysis
             analysis = workflow.analyzer.analyze(tmp_path, chd_rooms)
             missing = analysis.get("missing_count", 0)
             loc_err = analysis.get("location_errors", 0)
@@ -158,12 +132,12 @@ def generate_floorplans(
                 f"[POST-PROCESS] Variant {idx+1}: missing={missing}, loc_errors={loc_err}, score={score:.2f}"
             )
 
-            # Upscale with NEAREST
             img = cv2.imread(tmp_path)
             if img is None:
                 logger.warning(f"[POST-PROCESS] Variant {idx+1}: failed to read image, skipping upscale.")
                 os.unlink(tmp_path)
                 continue
+            
             h, w = img.shape[:2]
             scale_factor = 8
             new_w, new_h = w * scale_factor, h * scale_factor
@@ -171,24 +145,20 @@ def generate_floorplans(
             cv2.imwrite(tmp_path, img_hd)
             logger.info(f"[POST-PROCESS] Variant {idx+1}: upscaled to {new_w}x{new_h} using NEAREST.")
 
-            # Optional DPI metadata
             with Image.open(tmp_path) as pil_img:
                 pil_img.save(tmp_path, dpi=(300, 300))
 
-            # Read as base64
             with open(tmp_path, "rb") as f:
                 reconstructed_b64 = base64.b64encode(f.read()).decode('utf-8')
 
-            # Clean up temp
             os.unlink(tmp_path)
             logger.info(f"[POST-PROCESS] Variant {idx+1}: temp file cleaned up.")
 
-            # Save candidate
             candidate = {
                 "id": str(uuid.uuid4()),
                 "image_url": f"data:image/png;base64,{reconstructed_b64}",
                 "seed": seed,
-                "rank": 0,  # akan diisi setelah sorting
+                "rank": 0,
                 "scores": {
                     "composite": score,
                     "missing_count": missing,
@@ -201,7 +171,6 @@ def generate_floorplans(
         if not candidates:
             raise FloorPlanGenerationError("[MCP_CLIENT] No valid variants generated.")
 
-        # Ranking
         candidates.sort(key=lambda x: x["scores"]["composite"], reverse=True)
         top_candidates = candidates[:TOP_K]
         for i, cand in enumerate(top_candidates):
@@ -215,13 +184,10 @@ def generate_floorplans(
         logger.error(f"[MCP_CLIENT] Generation or post-processing failed: {e}\n{traceback.format_exc()}")
         raise FloorPlanGenerationError(f"[MCP_CLIENT] {str(e)}") from e
 
-    # ------------------------------------------------------------
-    # STEP 5: FINAL RESPONSE
-    # ------------------------------------------------------------
     try:
         logger.info("[PIPELINE] Assembling final response.")
         final_response = {
-            "data": top_candidates,   # <-- hanya 5 terbaik
+            "data": top_candidates,
             "parsed_data": {
                 "validated_rooms": validated_request.model_dump(),
                 "chd_format": chd_rooms,

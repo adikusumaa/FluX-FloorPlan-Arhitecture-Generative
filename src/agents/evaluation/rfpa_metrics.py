@@ -1,11 +1,24 @@
+import cv2
 import numpy as np
 import logging
 from typing import List, Dict, Tuple, Optional
-from .graph_extractor import extract_graph_from_image
 
 logger = logging.getLogger(__name__)
 
-# ========== KONFIGURASI ==========
+COLOR_MAP = {
+    "LivingRoom": [238, 232, 170],
+    "MasterRoom": [255, 165, 0],
+    "Kitchen": [240, 128, 128],
+    "Bathroom": [173, 216, 210],
+    "Balcony": [107, 142, 35],
+    "DiningRoom": [218, 112, 214],
+    "Storage": [221, 160, 221],
+    "CommonRoom": [255, 215, 0],
+}
+
+MIN_AREA = 40
+DILATE_KERNEL = np.ones((3, 3), np.uint8)
+
 BEDROOM_GROUP = ["MasterRoom", "ChildRoom", "StudyRoom", "SecondRoom", "GuestRoom"]
 
 CATEGORY_WEIGHTS = {
@@ -26,19 +39,74 @@ DEFAULT_COMPOSITE_WEIGHTS = {
     "stage4": 0.30,
 }
 
-GAP = 4
-ALIGN_RANGE = 5
-
-
 def normalize_category(category: str) -> str:
     if category in BEDROOM_GROUP:
         return "Bedroom"
     return category
 
+def extract_rooms_from_image(image_path: str, min_area: int = MIN_AREA) -> List[Dict]:
+    img_bgr = cv2.imread(image_path)
+    if img_bgr is None:
+        logger.error(f"Failed to read image: {image_path}")
+        return []
 
-# ======================================================================
-# STAGE 1
-# ======================================================================
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    rooms = []
+    index_counter = 0
+
+    for category, color in COLOR_MAP.items():
+        lower = np.array(color, dtype=np.uint8)
+        upper = np.array(color, dtype=np.uint8)
+        mask = cv2.inRange(img_rgb, lower, upper)
+
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=4)
+
+        for i in range(1, num_labels):
+            area = stats[i, cv2.CC_STAT_AREA]
+            if area < min_area:
+                continue
+
+            x, y, w, h = stats[i, cv2.CC_STAT_LEFT], stats[i, cv2.CC_STAT_TOP], \
+                         stats[i, cv2.CC_STAT_WIDTH], stats[i, cv2.CC_STAT_HEIGHT]
+            cx, cy = int(centroids[i][0]), int(centroids[i][1])
+
+            room_mask = np.zeros_like(mask)
+            room_mask[labels == i] = 255
+
+            rooms.append({
+                "index": index_counter,
+                "category": category,
+                "mask": room_mask,
+                "bbox": (x, y, w, h),
+                "centroid": (cx, cy),
+                "area": int(area),
+            })
+            index_counter += 1
+
+    return rooms
+
+def extract_adjacency_from_rooms(rooms: List[Dict], dilation_kernel: Optional[np.ndarray] = None) -> List[Tuple[int, int]]:
+    if dilation_kernel is None:
+        dilation_kernel = DILATE_KERNEL
+
+    edges = []
+    n = len(rooms)
+    dilated_masks = [cv2.dilate(room["mask"], dilation_kernel, iterations=2) for room in rooms]
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            overlap = cv2.bitwise_and(dilated_masks[i], dilated_masks[j])
+            if cv2.countNonZero(overlap) > 0:
+                edges.append((rooms[i]["index"], rooms[j]["index"]))
+
+    return edges
+
+def extract_graph_from_image(image_path: str, min_area: int = MIN_AREA) -> Tuple[List[Dict], List[Tuple[int, int]]]:
+    rooms = extract_rooms_from_image(image_path, min_area)
+    edges = extract_adjacency_from_rooms(rooms)
+    logger.info(f"Graph extractor: {len(rooms)} rooms, {len(edges)} adjacency edges")
+    return rooms, edges
+
 def calculate_stage1_room_count(requested_rooms, detected_rooms, category_weights=None):
     weights = category_weights if category_weights is not None else CATEGORY_WEIGHTS
     requested_counts = {}
@@ -76,10 +144,6 @@ def calculate_stage1_room_count(requested_rooms, detected_rooms, category_weight
         "score": score,
     }
 
-
-# ======================================================================
-# MATCHING REQUESTED -> DETECTED
-# ======================================================================
 def match_requested_to_detected(requested_rooms, detected_rooms):
     detected_by_cat = {}
     for idx, det in enumerate(detected_rooms):
@@ -100,10 +164,6 @@ def match_requested_to_detected(requested_rooms, detected_rooms):
 
     return mapping
 
-
-# ======================================================================
-# STAGE 2
-# ======================================================================
 def calculate_stage2_rfp_ged(requested_rooms, detected_rooms, adjacency_edges):
     name_to_req_idx = {room.get("name", ""): idx for idx, room in enumerate(requested_rooms)}
 
@@ -114,49 +174,41 @@ def calculate_stage2_rfp_ged(requested_rooms, detected_rooms, adjacency_edges):
             if j is not None and i < j:
                 ref_edges.append((i, j))
 
-    # Asumsikan detected_rooms urutannya sama dengan graph extractor nodes (0..n-1)
     mapping = match_requested_to_detected(requested_rooms, detected_rooms)
-
-    # Build mapping dari node extractor ke request idx (karena adjacency_edges memakai node index)
-    node_to_req = {}
-    for req_idx, det_idx in mapping.items():
-        node_to_req[det_idx] = req_idx
+    node_to_req = {det_idx: req_idx for req_idx, det_idx in mapping.items()}
 
     detected_adjacency_req = set()
     for a, b in adjacency_edges:
         ra = node_to_req.get(a)
         rb = node_to_req.get(b)
         if ra is not None and rb is not None:
-            detected_adjacency_req.add((ra, rb))
-            detected_adjacency_req.add((rb, ra))
+            if ra < rb:
+                detected_adjacency_req.add((ra, rb))
+            else:
+                detected_adjacency_req.add((rb, ra))
 
-    missing_door_cost = 0
-    for (i, j) in ref_edges:
-        if (i, j) not in detected_adjacency_req:
-            missing_door_cost += 2
-
-    # Extra wall edges: adjacency yang bukan door
-    extra_wall_cost = 0
+    missing_edge_cost = 0
     ref_set = set(ref_edges)
-    for (i, j) in detected_adjacency_req:
-        if i < j and (i, j) not in ref_set:
-            extra_wall_cost += 1
+    for edge in ref_set:
+        if edge not in detected_adjacency_req:
+            missing_edge_cost += 1
 
-    cost = missing_door_cost + extra_wall_cost
-    max_cost = max(2 * len(ref_edges) + extra_wall_cost, 1)
+    extra_edge_cost = 0
+    for edge in detected_adjacency_req:
+        if edge not in ref_set:
+            extra_edge_cost += 1
+
+    cost = missing_edge_cost + extra_edge_cost
+    max_cost = max(len(ref_set) + extra_edge_cost, 1)
     score = max(0.0, 1.0 - cost / max_cost)
 
     return {
         "edit_distance": cost,
-        "missing_door_cost": missing_door_cost,
-        "extra_wall_cost": extra_wall_cost,
+        "missing_edge_cost": missing_edge_cost,
+        "extra_edge_cost": extra_edge_cost,
         "score": score,
     }
 
-
-# ======================================================================
-# STAGE 3
-# ======================================================================
 def get_quadrant_rotated(dx, dy):
     angle = np.pi / 4
     u = dx * np.cos(angle) - dy * np.sin(angle)
@@ -170,7 +222,6 @@ def get_quadrant_rotated(dx, dy):
         return "south"
     else:
         return "west"
-
 
 def calculate_stage3_location_quadrant(requested_rooms, detected_rooms):
     mapping = match_requested_to_detected(requested_rooms, detected_rooms)
@@ -216,114 +267,91 @@ def calculate_stage3_location_quadrant(requested_rooms, detected_rooms):
         "score": score,
     }
 
-
-# ======================================================================
-# STAGE 4
-# ======================================================================
-def bbox_iou(box1, box2):
-    x1 = max(box1[0], box2[0])
-    y1 = max(box1[1], box2[1])
-    x2 = min(box1[0] + box1[2], box2[0] + box2[2])
-    y2 = min(box1[1] + box1[3], box2[1] + box2[3])
-
-    inter_w = max(0, x2 - x1)
-    inter_h = max(0, y2 - y1)
-    inter_area = inter_w * inter_h
-
-    area1 = box1[2] * box1[3]
-    area2 = box2[2] * box2[3]
-    union_area = area1 + area2 - inter_area
-    return inter_area / union_area if union_area > 0 else 0.0
-
-
-def build_expected_bbox(room, size_weights, living_size, gap=GAP):
+def generate_expected_mask(room, size_weights):
     size = room.get("size", "M")
     s = size_weights.get(size, 16)
-    location = room.get("location", "Unknown")
+    mask = np.zeros((64, 64), dtype=np.uint8)
+    
+    cx, cy = 32, 32
+    x1 = max(0, cx - s // 2)
+    y1 = max(0, cy - s // 2)
+    x2 = min(64, cx + s // 2)
+    y2 = min(64, cy + s // 2)
+    
+    cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+    return mask
 
-    cx = cy = 32
-    if location == "north":
-        cy = 32 - living_size // 2 - gap - s // 2
-    elif location == "south":
-        cy = 32 + living_size // 2 + gap + s // 2
-    elif location == "east":
-        cx = 32 + living_size // 2 + gap + s // 2
-    elif location == "west":
-        cx = 32 - living_size // 2 - gap - s // 2
+def shift_mask(mask, dx, dy):
+    M = np.float32([[1, 0, dx], [0, 1, dy]])
+    shifted = cv2.warpAffine(mask, M, (mask.shape[1], mask.shape[0]))
+    return shifted
 
-    x = cx - s // 2
-    y = cy - s // 2
-    return (x, y, s, s)
-
-
-def calculate_stage4_rfp_iou(requested_rooms, detected_rooms, size_weights, align_range=ALIGN_RANGE, gap=GAP):
+def calculate_stage4_rfp_iou(requested_rooms, detected_rooms, size_weights):
     mapping = match_requested_to_detected(requested_rooms, detected_rooms)
-
-    living_size = size_weights.get("M", 16)
-    for req in requested_rooms:
-        if normalize_category(req.get("category", "Unknown")) == "LivingRoom":
-            living_size = size_weights.get(req.get("size", "M"), 16)
-            break
-
-    expected_boxes = [build_expected_bbox(req, size_weights, living_size, gap) for req in requested_rooms]
-
-    best_total_iou = 0.0
-    best_shift = (0, 0)
-
-    for dx_shift in range(-align_range, align_range + 1):
-        for dy_shift in range(-align_range, align_range + 1):
-            total_iou = 0.0
-            valid_count = 0
-
-            for req_idx, expected_box in enumerate(expected_boxes):
-                det_idx = mapping.get(req_idx)
-                if det_idx is None:
-                    continue
-                det_bbox = detected_rooms[det_idx].get("bbox")
-                if det_bbox is None:
-                    continue
-
-                shifted_box = (
-                    det_bbox[0] + dx_shift,
-                    det_bbox[1] + dy_shift,
-                    det_bbox[2],
-                    det_bbox[3],
-                )
-                iou = bbox_iou(expected_box, shifted_box)
-                total_iou += iou
-                valid_count += 1
-
-            avg_iou = total_iou / valid_count if valid_count > 0 else 0.0
-            if avg_iou > best_total_iou:
-                best_total_iou = avg_iou
-                best_shift = (dx_shift, dy_shift)
-
+    
+    total_iou = 0.0
+    valid_count = 0
+    
+    for req_idx, req in enumerate(requested_rooms):
+        det_idx = mapping.get(req_idx)
+        if det_idx is None:
+            continue
+            
+        det_room = detected_rooms[det_idx]
+        det_mask = det_room.get("mask")
+        if det_mask is None:
+            continue
+            
+        exp_mask = generate_expected_mask(req, size_weights)
+        
+        exp_coords = cv2.findNonZero(exp_mask)
+        det_coords = cv2.findNonZero(det_mask)
+        
+        if exp_coords is None or det_coords is None:
+            continue
+            
+        exp_coords = exp_coords.reshape(-1, 2)
+        det_coords = det_coords.reshape(-1, 2)
+        
+        exp_cx = int(np.mean(exp_coords[:, 0]))
+        exp_cy = int(np.mean(exp_coords[:, 1]))
+        
+        det_cx = int(np.mean(det_coords[:, 0]))
+        det_cy = int(np.mean(det_coords[:, 1]))
+        
+        dx = exp_cx - det_cx
+        dy = exp_cy - det_cy
+        
+        aligned_det_mask = shift_mask(det_mask, dx, dy)
+        
+        intersection = cv2.bitwise_and(exp_mask, aligned_det_mask)
+        union = cv2.bitwise_or(exp_mask, aligned_det_mask)
+        
+        inter_area = cv2.countNonZero(intersection)
+        union_area = cv2.countNonZero(union)
+        
+        iou = inter_area / union_area if union_area > 0 else 0.0
+        total_iou += iou
+        valid_count += 1
+        
+    score = total_iou / valid_count if valid_count > 0 else 0.0
     return {
-        "score": best_total_iou,
-        "best_shift": best_shift,
+        "score": score
     }
 
-
-# ======================================================================
-# COMPOSITE
-# ======================================================================
 def calculate_rfpa_metrics(analysis=None, requested_rooms=None, image_path=None,
                            size_weights=None, composite_weights=None):
-    """
-    Hitung semua stage dan composite score.
-    """
     if size_weights is None:
         size_weights = {"XS": 10, "S": 12, "M": 16, "L": 20, "XL": 26}
     if composite_weights is None:
         composite_weights = DEFAULT_COMPOSITE_WEIGHTS
 
-    # Gunakan graph extractor sebagai sumber utama detected_rooms
     if image_path is not None:
         graph_rooms, adjacency_edges = extract_graph_from_image(image_path)
         detected_rooms = graph_rooms
     elif analysis is not None:
         detected_rooms = analysis.get("detected_rooms", [])
-        adjacency_edges = []  # tidak tersedia
+        adjacency_edges = []
     else:
         detected_rooms = []
         adjacency_edges = []

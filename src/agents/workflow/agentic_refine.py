@@ -1,15 +1,15 @@
 import logging
 import base64
-import json
 import io
 import cv2
+import random
 import numpy as np
 from typing import List, Dict
 from PIL import Image, ImageDraw
 from src.mcp.client.mcp_client import MCPClient
 from src.agents.vision.floorplan_analyzer import FloorplanAnalyzer
 
-logging.basicConfig(level=logging.INFO, format='[WORKFLOW] %(message)s')
+logger = logging.getLogger(__name__)
 
 class AgenticWorkflow:
     def __init__(self, mcp_url: str):
@@ -17,17 +17,18 @@ class AgenticWorkflow:
         self.analyzer = FloorplanAnalyzer(min_area_threshold=40)
         self.size_weights = {"XS": 10, "S": 12, "M": 16, "L": 20, "XL": 26}
         self.valid_colors_rgb = [
-            [238, 232, 170],  # LivingRoom
-            [255, 165, 0],    # MasterRoom
-            [240, 128, 128],  # Kitchen
-            [173, 216, 210],  # Bathroom
-            [107, 142, 35],   # Balcony
-            [218, 112, 214],  # DinningRoom
-            [216, 191, 216],  # Storage
-            [255, 215, 0]     # CommonRoom (akan di-map ke LivingRoom di converter)
+            [238, 232, 170],
+            [255, 165, 0],
+            [240, 128, 128],
+            [173, 216, 210],
+            [107, 142, 35],
+            [218, 112, 214],
+            [216, 191, 216],
+            [255, 215, 0]
         ]
 
-    def generate_topological_mask(self, rooms: List[Dict]) -> str:
+    def generate_topological_mask(self, rooms: List[Dict], seed: int = 42) -> str:
+        random.seed(seed)
         img = Image.new('L', (64, 64), 255)
         draw = ImageDraw.Draw(img)
         
@@ -35,33 +36,45 @@ class AgenticWorkflow:
         
         for room in rooms:
             loc = room.get("location", "center")
-            s = self.size_weights.get(room.get("size", "M"), 12)
+            base_s = self.size_weights.get(room.get("size", "M"), 12)
+            
+            jitter = random.uniform(0.85, 1.15)
+            ar = random.uniform(0.75, 1.25)
+            
+            area = (base_s ** 2) * jitter
+            w = int(np.sqrt(area * ar))
+            h = int(np.sqrt(area / ar))
             
             x1, y1, x2, y2 = cx, cy, cx, cy
             
+            offset_dist = random.randint(8, 12)
+            shift = random.randint(-3, 3)
+            
             if "north" in loc:
-                y1 = cy - s - 10
+                y1 = cy - h - offset_dist
                 y2 = cy
+                x1 = cx - w + shift
+                x2 = cx + w + shift
             elif "south" in loc:
                 y1 = cy
-                y2 = cy + s + 10
-                
-            if "east" in loc:
+                y2 = cy + h + offset_dist
+                x1 = cx - w + shift
+                x2 = cx + w + shift
+            elif "east" in loc:
                 x1 = cx
-                x2 = cx + s + 10
+                x2 = cx + w + offset_dist
+                y1 = cy - h + shift
+                y2 = cy + h + shift
             elif "west" in loc:
-                x1 = cx - s - 10
+                x1 = cx - w - offset_dist
                 x2 = cx
-                
-            if loc == "center":
-                x1, y1, x2, y2 = cx - s - 4, cy - s - 4, cx + s + 4, cy + s + 4
+                y1 = cy - h + shift
+                y2 = cy + h + shift
             else:
-                if x1 == x2: 
-                    x1 -= (s + 4)
-                    x2 += (s + 4)
-                if y1 == y2:
-                    y1 -= (s + 4)
-                    y2 += (s + 4)
+                c_margin_w = random.randint(2, 6)
+                c_margin_h = random.randint(2, 6)
+                x1, y1 = cx - w - c_margin_w, cy - h - c_margin_h
+                x2, y2 = cx + w + c_margin_w, cy + h + c_margin_h
 
             x1, y1 = max(2, x1), max(2, y1)
             x2, y2 = min(61, x2), min(61, y2)
@@ -129,32 +142,3 @@ class AgenticWorkflow:
         
         clean_bgr = cv2.cvtColor(clean_canvas, cv2.COLOR_RGB2BGR)
         cv2.imwrite(image_path, clean_bgr)
-
-    def execute(self, target_rooms: List[Dict], output_prefix: str = "floorplan"):
-        logging.info("Initiating Topology-Driven Dynamic Masking Workflow.")
-        
-        custom_mask_b64 = self.generate_topological_mask(target_rooms)
-        
-        response = self.client.generate_floorplan(
-            rooms=target_rooms,
-            cond_scale=1.5,
-            custom_mask=custom_mask_b64
-        )
-
-        if not response or "images" not in response or len(response["images"]) == 0:
-            logging.error("Invalid response from MCP Server")
-            return
-
-        img_data = response["images"][0].split(",")[1]
-        output_filename = f"{output_prefix}_dynamic.png"
-        
-        with open(output_filename, "wb") as fh:
-            fh.write(base64.b64decode(img_data))
-            
-        self.apply_reconstruction(output_filename)
-        
-        analysis = self.analyzer.analyze(output_filename, target_rooms)
-        
-        logging.info(f"\nFINAL ANALYSIS:\n{json.dumps(analysis['detected_rooms'], indent=2)}")
-        logging.info(f"Missing Rooms: {analysis['missing_count']} | Location Errors: {analysis['location_errors']}")
-        logging.info(f"Workflow completed. Result saved to {output_filename}")
