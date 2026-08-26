@@ -36,8 +36,9 @@ class FloorPlanData(BaseModel):
     energy: Optional[Dict[str, Any]] = None
     suggestions: Optional[Dict[str, str]] = None
     rfpa: Optional[Dict[str, Any]] = None
-    orientation: Optional[Dict[str, str]] = None
+    orientation: Optional[float] = None
     location: Optional[Dict[str, float]] = None
+    mitigation: Optional[str] = None
 
 class GenerateResponse(BaseModel):
     status: str

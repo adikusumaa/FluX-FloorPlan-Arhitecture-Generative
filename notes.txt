@@ -44,7 +44,7 @@ Input Location : akan digunakansebagai pencatatan lokasi dalam menentukan arah r
 Source Pinecone DB : dala mengchukin deng optimal dan hemat maka akan disotekan dan nanti ai akan berkomnikasi dengan pine cone dll semuamnggunaka mcp
 Proses setelah NLP user di proses oleh AI Agent LLM Input maka akan menghasilkan JSON yang ringkas dan sesuai dengan inputan yang akan digunakna dalam chat house diffution
 Output Staging : akan ada beberapa generate design floorplan 10 generate floor plan stagging
-Proses : Output Staging 10 FloorPlan dalam RPLAN Style akan dilakukan perhitungan (Rangking) berdsarakan parameter RFP-A tertinggi akan dihasilkan 5 tertinggi, Input location akan digunakan dalam rotasi dRPLAN sesaui dengan mata angin atau bagian dari masing amsgin kamar harus menghadap mana itu sebagai pencahayaan, untuk ventilasi juga
+Proses : Output Staging 10 FloorPlan dalam RPLAN Style akan dilakukan perhitungan (Rangking) berdsarakan parameter RFP-A tertinggi akan dihasilkan 5 tertinggi, Input location akan digunakan dalam rotasi dRPLAN sesaui dengan mata angin atau bagian dari masing masing kamar harus menghadap mana itu sebagai pencahayaan, untuk ventilasi juga
 Output : 5 Design FLOR PLAN RPLAN Style dengan beberapa saran dan informasi mengenai environtment : kebisisnan di range berapa dikarenakana apa begitu
 
 

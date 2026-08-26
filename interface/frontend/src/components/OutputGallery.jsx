@@ -20,71 +20,77 @@ export default function OutputGallery({ results, onCardClick }) {
       </div>
 
       <div className="results-grid">
-        {results.map((plan, index) => (
-          <div
-            key={plan.id || index}
-            className="result-card"
-            onClick={() => onCardClick && onCardClick(plan)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="result-card-image">
-              <img src={plan.image_url} alt={plan.id || `Floor Plan ${index + 1}`} />
-              <div className="result-card-badge">#{plan.rank || index + 1}</div>
-            </div>
+        {results.map((plan, index) => {
+          const compositeScore = plan.scores?.composite ?? 0;
+          const energy = plan.energy || {};
+          
+          // Mengambil nilai ORCA aktual dari plan.scores.orca
+          const orca = plan.scores?.orca || { O: 0, R: 0, C: 0, A: 0 };
+          
+          const metrics = [
+            { label: 'O', val: orca.O },
+            { label: 'R', val: orca.R },
+            { label: 'C', val: orca.C },
+            { label: 'A', val: orca.A },
+          ];
 
-            <div className="result-card-body">
-              <div className="result-card-header">
-                <span className="result-card-style">{plan.style || 'RPLAN'}</span>
-                <span className="result-card-score">
-                  {plan.scores?.composite?.toFixed(2) || '0.00'}
-                </span>
+          return (
+            <div
+              key={plan.id || index}
+              className="result-card"
+              onClick={() => onCardClick && onCardClick(plan)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="result-card-image">
+                <img src={plan.image_url} alt={plan.id || `Floor Plan ${index + 1}`} />
+                <div className="result-card-badge">#{plan.rank || index + 1}</div>
               </div>
 
-              <div className="result-card-stats">
-                <div className="stat-item">
-                  <span className="stat-label">EUI</span>
-                  <span className="stat-value">{plan.energy?.EUI || '-'} kWh/m²</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Area</span>
-                  <span className="stat-value">{plan.energy?.total_area || '-'} m²</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Status</span>
-                  <span
-                    className={`stat-value ${
-                      plan.energy?.fire_safety_status === 'OK' ? 'stat-ok' : 'stat-warning'
-                    }`}
-                  >
-                    {plan.energy?.fire_safety_status || '-'}
+              <div className="result-card-body">
+                <div className="result-card-header">
+                  <span className="result-card-style">{plan.style || 'Modern'}</span>
+                  <span className="result-card-score">
+                    {compositeScore.toFixed(2)}
                   </span>
                 </div>
-              </div>
 
-              <div className="result-card-scores">
-                {['O', 'C', 'R', 'A'].map((label, idx) => {
-                  const keys = [
-                    'spatial_openness',
-                    'circulation_efficiency',
-                    'layout_rationality',
-                    'adaptability',
-                  ];
-                  const val = plan.scores?.[keys[idx]] ?? 0;
-                  return (
-                    <div key={idx} className="score-dot">
+                <div className="result-card-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">EUI</span>
+                    <span className="stat-value">
+                      {energy.EUI !== undefined ? `${energy.EUI.toFixed(2)} kWh/m²` : '-'}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Area</span>
+                    <span className="stat-value">
+                      {energy.total_area !== undefined ? `${energy.total_area.toFixed(2)} m²` : '-'}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Status</span>
+                    <span className={`stat-value ${energy.fire_safety_status === 'OK' ? 'stat-ok' : 'stat-warning'}`}>
+                      {energy.fire_safety_status || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="result-card-scores">
+                  {metrics.map(({ label, val }) => (
+                    <div key={label} className="score-dot">
                       <span className="score-dot-label">{label}</span>
                       <div
                         className={`score-dot-bar ${getScoreColor(val)}`}
-                        style={{ width: `${val * 100}%` }}
+                        style={{ width: `${Math.min(val * 100, 100)}%` }}
                       />
                       <span className="score-dot-value">{val.toFixed(2)}</span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
