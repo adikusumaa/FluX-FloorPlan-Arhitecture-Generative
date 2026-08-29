@@ -20,6 +20,7 @@ from src.nlp.decoder import validate_and_parse, DecoderError, MalformedJSONError
 from src.agents.workflow.agentic_refine import AgenticWorkflow
 from src.mcp.client.mcp_client import MCPClient
 from src.mcp.client.environment_client import evaluate_plans
+from src.agents.crew.crew_runner import generate_crew_summary   # <-- Import CrewAI runner
 
 logger = logging.getLogger(__name__)
 
@@ -231,13 +232,11 @@ def generate_floorplans(
                         cand["scores"]["env_score"] = round(env_score, 3)
 
                         env_detail = env_item.get("scores_detail", {})
-                        # Mapping environment data ke field yang diharapkan frontend
                         cand["scores"]["spatial_openness"] = env_detail.get("noise_score", 0.0)
                         cand["scores"]["circulation_efficiency"] = env_detail.get("ventilation_score", 0.0)
                         cand["scores"]["layout_rationality"] = env_detail.get("daylight_score", 0.0)
                         cand["scores"]["adaptability"] = env_score
 
-                        # Energy fields
                         cand["energy"] = {
                             "EUI": round(env_score * 100, 2),
                             "total_area": validated_request.get_total_area() * 0.092903,
@@ -248,15 +247,12 @@ def generate_floorplans(
                             "suggestions_list": env_detail.get("suggestions", [])
                         }
 
-                        # Simpan teks mitigasi dari Qwen
                         mitigation_text = env_item.get("mitigation", "")
                         cand["suggestions"] = {
                             "environment": mitigation_text
                         }
-                        # Tambahkan field qwen_analysis untuk kemudahan frontend
                         cand["qwen_analysis"] = mitigation_text
 
-                        # Buat scores.orca agar frontend mudah membaca O,C,R,A
                         cand["scores"]["orca"] = {
                             "O": cand["scores"]["spatial_openness"],
                             "C": cand["scores"]["circulation_efficiency"],
@@ -278,7 +274,6 @@ def generate_floorplans(
 
             except Exception as e:
                 logger.error(f"[ENV INTEGRATION] Environment evaluation failed: {e}. Using original ranking.")
-                # Fallback: isi default agar frontend tidak error
                 for cand in top_candidates:
                     cand["scores"]["spatial_openness"] = 0.0
                     cand["scores"]["circulation_efficiency"] = 0.0
@@ -296,7 +291,6 @@ def generate_floorplans(
                     cand["qwen_analysis"] = ""
         else:
             logger.info("[ENV INTEGRATION] No location provided, skipping environment evaluation.")
-            # Isi default
             for cand in top_candidates:
                 cand["scores"]["spatial_openness"] = 0.0
                 cand["scores"]["circulation_efficiency"] = 0.0
@@ -313,6 +307,20 @@ def generate_floorplans(
                 }
                 cand["qwen_analysis"] = ""
         # ================= END ENV INTEGRATION =================
+
+        # ================= CREWAI SUMMARY =================
+        try:
+            logger.info("[CREW] Generating final summary using CrewAI...")
+            crew_summary = generate_crew_summary(top_candidates, user_text, location)
+            if crew_summary:
+                # Tambahkan ringkasan ke parsed_data, bukan per kandidat
+                logger.info("[CREW] Summary generated successfully.")
+            else:
+                logger.warning("[CREW] Empty summary, skipping.")
+        except Exception as e:
+            logger.error(f"[CREW] Failed to generate summary: {e}")
+            crew_summary = ""
+        # ================= END CREWAI SUMMARY =================
 
     except Exception as e:
         logger.error(f"[MCP_CLIENT] Generation or post-processing failed: {e}\n{traceback.format_exc()}")
@@ -341,7 +349,8 @@ def generate_floorplans(
                     }
                     for c in top_candidates
                 ],
-                "environment_applied": any("env_score" in c["scores"] for c in top_candidates)
+                "environment_applied": any("env_score" in c["scores"] for c in top_candidates),
+                "crew_summary": crew_summary  # <-- Tambahkan ke parsed_data
             }
         }
         logger.info("[PIPELINE] Pipeline finished successfully.")

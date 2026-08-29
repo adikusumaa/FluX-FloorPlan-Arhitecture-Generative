@@ -32,16 +32,17 @@ class FloorPlanData(BaseModel):
     rank: int
     image_url: str
     style: Optional[str] = "Modern"
-    scores: Dict[str, float]
+    scores: Dict[str, Any] = Field(default_factory=dict)
     energy: Optional[Dict[str, Any]] = None
     suggestions: Optional[Dict[str, str]] = None
     rfpa: Optional[Dict[str, Any]] = None
     orientation: Optional[float] = None
     location: Optional[Dict[str, float]] = None
     mitigation: Optional[str] = None
+    qwen_analysis: Optional[str] = None
 
 class GenerateResponse(BaseModel):
     status: str
     message: str
     data: List[FloorPlanData]
-    parsed_data: Optional[Dict[str, Any]] = None
+    parsed_data: Optional[Dict[str, Any]] = None   # crew_summary ada di dalam parsed_data

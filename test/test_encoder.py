@@ -15,7 +15,7 @@ if __name__ == "__main__":
     ]
     
     print("="*60)
-    print("🧪 Testing Encoder Server")
+    print("[TESTING] Testing Encoder Server")
     print("="*60)
     
     for i, text in enumerate(test_inputs, 1):
