@@ -1,4 +1,4 @@
-# FluX! – Generative Floor Plan System
+# 🏠 FluX! - Intelligent Generative Floor Plan System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
@@ -6,112 +6,112 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-0.70+-purple.svg)](https://crewai.com/)
 
-> From natural language to the 5 best floor plans – validated by environment, energy, and spatial intelligence.
+**FluX!** is an intelligent generative AI system that automatically designs and produces floor plans from natural language input utilizing the **ChatHouseDiffusion** architecture. Beyond simple image generation, FluX! validates every design through rigorous geometric constraints (RFP-A, RFP-IOU, RFP-D), environmental analysis (sun path, wind, noise), and AI‑driven summarization to ensure optimal, rational, and functional layouts.
+
+![FluX Input Interface](img/Screenshot%202026-08-22%20145415.png)
+*Natural language input interface.*
+
+![FluX Input MAPPICK](img/Screenshot%202026-08-30%20125203.png)
+*Map picker input interface.*
+
+![FluX Output Interface](img/Screenshot%202026-08-26%20180554.png)
+*Top‑5 recommended floor plans ranked by energy and spatial scores.*
+
+![Analyze every RPLAN](img/Screenshot%202026-08-30%20125218.png)
+*Environment analysis based on location – recommendations for weather and orientation optimization.*
+
+![Conclusion Crew AI](img/Screenshot%202026-08-30%20125146.png)
+*AI‑generated executive summary with pros and cons of each RPLAN candidate.*
 
 ---
 
-## Overview
-FluX! is an end-to-end generative AI system that transforms a simple text description into optimal, energy-efficient floor plans. The system utilizes ChatHouseDiffusion for layout generation and evaluates the outputs using strict Room-Floor Polygon (RFP) spatial metrics. It combines:
-- Natural Language Understanding (LLM Encoder)
-- Generative Diffusion Models (ChatHouseDiffusion)
-- Environment & Energy Simulation (solar, wind, noise)
-- Geometric Spatial Evaluation (RFP-A, RFP-IOU, RFP-D)
-- Intelligent Summarization (CrewAI agents)
+## ✨ Key Features
+- 🗣️ **Natural Language Processing**: Extracts room requirements, dimensions, and style via Qwen2.5-14B-Instruct.
+- 📐 **Generative Core (ChatHouseDiffusion)**: Generates 15 layout variants per request based on topological inputs.
+- 🌍 **Location‑Aware Design**: Fetches real‑time climate data (Open-Meteo, Overpass API) to optimize orientation.
+- 📊 **RFP Spatial Metrics**: Every plan is scored strictly on **RFP-A (Alignment)**, **RFP-IOU (Intersection over Union)**, and **RFP-D (Distance)**.
+- 🧠 **AI Agent Orchestration (CrewAI)**: Multi‑agent system for analysis, evaluation, and summarization.
+- 🤖 **Google Gemini 3.5‑Flash**: Powers the CrewAI agents for natural language reasoning.
+- 🌿 **Environment Evaluator**: External API calculates daylight, ventilation, and noise scores.
+- 🎨 **Minimalist Apple‑Style UI**: Modern React (Vite) frontend with pure Glassmorphism CSS.
 
 ---
 
-## Key Features
+## 🛠️ Tech Stack
+The project uses a **hybrid architecture** separating local execution (UI, orchestration, evaluation) and cloud execution (heavy AI generation).
 
-| Feature | Description |
-|---------|-------------|
-| Natural Language Input | Extract room types, sizes, and links via Qwen2.5-14B encoder. |
-| Location-Aware Design | Fetch real-time climate data (sun path, wind, noise) to optimize orientation. |
-| ChatHouseDiffusion | Generate continuous and discrete floor plan representations based on topological inputs. |
-| RFP Spatial Metrics | Evaluate generated plans against spatial constraints using RFP-A, RFP-IOU, and RFP-D. |
-| Environmental Evaluation | Calculate daylight, ventilation, and noise scores based on local weather. |
-| AI-Powered Summary | CrewAI agents analyze the top 5 plans and generate professional executive summaries. |
-| Modern UI | Clean, responsive interface with map picker and live results (React/Vite). |
+### Frontend (Client‑Side)
+- **Framework**: React.js (Vite)
+- **Styling**: Pure CSS (Apple iOS Glassmorphism design)
+- **Map Integration**: Leaflet
 
----
+### Backend (Local)
+- **Language**: Python 3.10+
+- **API Framework**: FastAPI & Uvicorn
+- **Orchestration**: CrewAI (multi‑agent system)
+- **LLM Engine**: Qwen2.5-14B-Instruct (4-bit quantized) & Gemini 3.5-Flash
+- **Environment Analysis**: Open‑Meteo API, Nominatim (OSM), Overpass API
 
-## Tech Stack
-
-### Frontend
-- React 18 (Vite)
-- Pure CSS (Apple iOS Glassmorphism design)
-- Leaflet
-
-### Backend & AI
-- Python 3.10+
-- FastAPI + Uvicorn
-- ChatHouseDiffusion
-- Qwen2.5-14B-Instruct (4-bit quantized)
-- CrewAI + Gemini API
-- Open-Meteo & Overpass API
+### Cloud AI (Kaggle GPU)
+- **Generative Model**: ChatHouseDiffusion
+- **Integration**: MCP Server (FastAPI + ngrok)
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
 ```text
 User Input (text + location)
 │
 ▼
-┌─────────────────────────────┐
-│       FastAPI Backend       │
-│  ┌───────────────────────┐  │
-│  │     Encoder (NLP)     │  │
-│  │  → Qwen2.5-14B        │  │
-│  └───────────────────────┘  │
-│  ┌───────────────────────┐  │
-│  │       Generator       │  │
-│  │ → ChatHouseDiffusion  │  │
-│  └───────────────────────┘  │
-│  ┌───────────────────────┐  │
-│  │  Spatial Evaluator    │  │
-│  │ → RFP Metrics         │  │
-│  └───────────────────────┘  │
-│  ┌───────────────────────┐  │
-│  │ Environment Evaluator │  │
-│  │ → Open-Meteo + LLM    │  │
-│  └───────────────────────┘  │
-│  ┌───────────────────────┐  │
-│  │     CrewAI Agents     │  │
-│  │ → Executive Summary   │  │
-│  └───────────────────────┘  │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                     FastAPI Backend                     │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │       NLP Encoder → Room List → CHD Format        │  │
+│  └───────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │    MCP Client → Kaggle GPU (ChatHouseDiffusion)   │  │
+│  │       → 15 layout variants returned as Base64     │  │
+│  └───────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │    Spatial Evaluator → RFP-A, RFP-IOU, RFP-D      │  │
+│  └───────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │     Environment Evaluator (Qwen 14B via ngrok)    │  │
+│  │        → Daylight, Ventilation, Noise scores      │  │
+│  └───────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │       CrewAI Agents → Analyst & Summariser        │  │
+│  │    → Executive summary with pros, cons, & reco    │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 │
 ▼
-Top 5 Plans + Summary
+Top 5 Plans + AI Summary
 ```
 
 ---
 
-## Spatial Evaluation (RFP Metrics)
-
-Every generated plan is strictly evaluated against topological boundaries and constraints using standard Room-Floor Polygon (RFP) metrics:
+## 📊 Spatial Evaluation (RFP Metrics)
+FluX! evaluates generated floor plans against strict geometric and topological boundaries using standard Room-Floor Polygon (RFP) metrics:
 
 | Metric | Name | Description |
-|------|--------|------------------|
-| RFP-A | Alignment | Measures the alignment accuracy between the generated room polygons and the overall floor boundary. |
-| RFP-IOU | Intersection over Union | Evaluates the overlap ratio between the predicted room bounding boxes and the topological constraints. |
-| RFP-D | Distance | Calculates the positional error distance between the generated room coordinates and their intended placement. |
+| :--- | :--- | :--- |
+| **RFP-A** | Alignment | Measures the alignment accuracy between the generated room polygons and the overall floor boundary. |
+| **RFP-IOU** | Intersection over Union | Evaluates the overlap ratio between the predicted room bounding boxes and the topological constraints. |
+| **RFP-D** | Distance | Calculates the positional error distance between the generated room coordinates and their intended placement. |
+
+These are combined with **environmental scores** (Daylight, Ventilation, Noise) into a final **composite score** for ranking.
 
 ---
 
-## Screenshots
+## 🚀 Installation & Setup
 
-| Input & Map Picker | Top 5 Results | Detailed Analysis |
-|--------------------|---------------|-------------------|
-| ![Input](img/input.png) | ![Gallery](img/gallery.png) | ![Detail](img/detail.png) |
-
-| Environmental Feedback | CrewAI Summary |
-|------------------------|----------------|
-| ![Env](img/env.png)    | ![Summary](img/summary.png) |
-
----
-
-## Installation & Setup
+### Prerequisites
+- Node.js (v18+)
+- Python 3.10+
+- Google Gemini API key
+- Ngrok auth token
 
 ### 1. Clone the Repository
 ```bash
@@ -119,77 +119,91 @@ git clone [https://github.com/adikusumaa/FluX--FloorPlan-Arhitecture-Gen-RFP-A-P
 cd FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter
 ```
 
-### 2. Backend Setup
+### 2. Setup Backend
 ```bash
 cd interface/backend
+
 python -m venv venv
 # Windows: venv\Scripts\activate
 # Mac/Linux: source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-Create `.env` file:
+Configure `.env`:
 ```env
 GOOGLE_API_KEY=your_gemini_key
-NGROK_AUTH_LLM=your_ngrok_token
+ENCODER_URL=http://localhost:8000
+CHATHOUSE_URL=http://your-mcp-endpoint
 ```
 
-Run the FastAPI server:
+Run Backend:
 ```bash
 uvicorn main:app --reload --port 8000
 ```
 
-### 3. Environment Evaluator & Encoder (Qwen 14B)
-```bash
-cd services/environment_api
-python app.py
-```
+### 3. Setup Environment Evaluator & ChatHouseDiffusion (Kaggle)
+Run the MCP server notebook on Kaggle with ngrok to expose the evaluation and diffusion endpoint. The URLs will be used in the local backend.
 
-### 4. Frontend Setup
+### 4. Setup Frontend
 ```bash
 cd interface/frontend
+
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+---
+
+## 🤖 AI Agent Orchestration (CrewAI)
+FluX! uses CrewAI to orchestrate multiple AI agents working sequentially:
+
+| Agent | Role | Tools Used |
+|-------|------|------------|
+| Analyst Agent | Analyses each floor plan variant for strengths, weaknesses, and compliance | – |
+| Summariser Agent | Generates a concise executive summary with pros, cons, and recommendations | – |
+| Generator Agent | Communicates with the MCP client to invoke ChatHouseDiffusion on Kaggle | generation_tool |
+| Evaluator Agent | Calculates RFP metrics and ranks candidates | rfpa_metrics.py |
 
 ---
 
-## How It Works (Step-by-Step)
-1. User describes their dream home.
-2. Location is picked on the map for climate context.
-3. The encoder (Qwen2.5-14B) parses the text into structured room requirements.
-4. ChatHouseDiffusion generates layout variants using topological masks.
-5. Each variant is scored for spatial accuracy using RFP-A, RFP-IOU, and RFP-D.
-6. The environment API evaluates daylight, ventilation, and noise based on local climate data.
-7. CrewAI agents analyze the top 5 plans and produce a professional executive summary.
-8. The frontend displays the results with interactive cards and the AI summary.
+## 🧪 End‑to‑End Flow
+1. **User Input:** User clicks on the map (Leaflet) and types a natural language description.
+2. **API Call:** Frontend sends `{ lat, lon, user_text }` to FastAPI endpoint.
+3. **CrewAI Trigger:** Backend launches the CrewAI workflow.
+4. **NLP Encoding:** User text is parsed into structured room requirements.
+5. **Generation (Cloud):** MCP Client sends request to Kaggle GPU – ChatHouseDiffusion generates variants.
+6. **Scoring & Ranking:** RFP metrics and environment scores are calculated, top 5 selected.
+7. **Summarization:** CrewAI agents generate an executive summary.
+8. **Response:** Backend returns JSON with top 5 plans, scores, and AI summary.
+9. **Rendering:** Frontend displays the gallery, ORCA scores, and the AI summary.
 
 ---
 
-## Contributing
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 🤝 Contributing
+Project status: ≈75% complete. Areas for contribution:
+- Integration of RAG (Pinecone) for building regulations
+- Enhanced thermal simulation (PDE solver)
+- More robust error handling and logging
+
+To contribute:
+1. Fork this repository.
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
 ---
 
-## License
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
-
-## Academic References
+## 📜 Academic References
 - ChatHouseDiffusion – Generative Floor Plan Framework
-- RFP Metrics – Spatial Evaluation Parameters
-- Deep Learning for Small Residential Space – Jobe 2026
+- GreenPlanner (ACM Multimedia 2026) – Energy‑Aware Generative Framework
+- RFP Metrics (Buildings MDPI 2025)
+- Deep Learning for Small Residential Space (Jobe 2026)
 
 ---
 
-## Author
-**Nur Adiyanto Kusuma Nuhgraha**  
-[GitHub](https://github.com/adikusumaa) · LinkedIn  
-Built as a research portfolio project for generative architecture and AI.
+## 📄 License
+Distributed under the MIT License. See LICENSE for more information.
+
+*Developed by Nur Adiyanto Kusuma Nuhgraha*
