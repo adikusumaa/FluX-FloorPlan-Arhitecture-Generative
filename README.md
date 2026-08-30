@@ -1,155 +1,195 @@
-# 🏠 FluX! - Intelligent Generative Floor Plan System
+# FluX! – Generative Floor Plan System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+[![CrewAI](https://img.shields.io/badge/CrewAI-0.70+-purple.svg)](https://crewai.com/)
 
-**FluX!** is an intelligent generative AI system that automatically designs and produces floor plans from natural language input. Beyond simple image generation, FluX! validates every design against building regulations (via RAG), thermal energy simulation (PDE), and a 4‑dimensional spatial evaluation metric (RFP‑A) to ensure optimal, rational, and functional layouts.
+> From natural language to the 5 best floor plans – validated by environment, energy, and spatial intelligence.
 
-![FluX Input Interface](img/Screenshot%202026-08-22%20145415.png)
-*Natural language input interface.*
+---
 
-![FluX Input MAPPICK](img/Screenshot%202026-08-30%20125203.png)
-*Mappick input interface.*
+## Overview
+FluX! is an end-to-end generative AI system that transforms a simple text description into optimal, energy-efficient floor plans. The system utilizes ChatHouseDiffusion for layout generation and evaluates the outputs using strict Room-Floor Polygon (RFP) spatial metrics. It combines:
+- Natural Language Understanding (LLM Encoder)
+- Generative Diffusion Models (ChatHouseDiffusion)
+- Environment & Energy Simulation (solar, wind, noise)
+- Geometric Spatial Evaluation (RFP-A, RFP-IOU, RFP-D)
+- Intelligent Summarization (CrewAI agents)
 
-![FluX Output Interface](img/Screenshot%202026-08-26%20180554.png)
-*Top‑5 recommended floor plans ranked by energy and spatial scores.*
+---
 
-![Analyze every RPLAN](img/Screenshot%202026-08-30%20125218.png)
-*Analyze and result environtemnt factor base on location mappick, contain recomendation to fullfil RPLAN capability about weather and rotation for natural light*
+## Key Features
 
-![Conclution Crew AI](img/Screenshot%202026-08-30%20125146.png)
-*Conclution the best based on pros and cons RPLAN by user req*
+| Feature | Description |
+|---------|-------------|
+| Natural Language Input | Extract room types, sizes, and links via Qwen2.5-14B encoder. |
+| Location-Aware Design | Fetch real-time climate data (sun path, wind, noise) to optimize orientation. |
+| ChatHouseDiffusion | Generate continuous and discrete floor plan representations based on topological inputs. |
+| RFP Spatial Metrics | Evaluate generated plans against spatial constraints using RFP-A, RFP-IOU, and RFP-D. |
+| Environmental Evaluation | Calculate daylight, ventilation, and noise scores based on local weather. |
+| AI-Powered Summary | CrewAI agents analyze the top 5 plans and generate professional executive summaries. |
+| Modern UI | Clean, responsive interface with map picker and live results (React/Vite). |
 
+---
 
+## Tech Stack
 
-## ✨ Key Features
-- 🗣️ **Natural Language Parsing**: Automatically extracts user intent, room requirements, style, and dimensions using Groq’s LLM (Llama-3.1).
-- 📚 **RAG for Building Regulations**: Retrieves real‑time legal constraints (SNI, PERMEN PUPR) from over 2,800 documents via Pinecone vector database.
-- 📐 **Topological Spatial Planning**: Generates bubble diagrams and room‑relation graphs.
-- 🧠 **Smart Generator & Evaluator**: Produces hundreds of candidates, then filters them using A* algorithm, Visibility Graph Analysis (VGA), and thermal evaluation.
-- 🎨 **Minimalist Apple‑Style UI**: Modern React frontend with pure CSS – lightweight, responsive, and intuitive.
+### Frontend
+- React 18 (Vite)
+- Pure CSS (Apple iOS Glassmorphism design)
+- Leaflet
 
-## 🛠️ Tech Stack
-
-The project uses a **monorepo** structure separating Frontend, Backend, and AI/Evaluation modules.
-
-### Frontend (Client‑Side)
-- **Framework**: React.js
-- **Styling**: Pure CSS (Apple‑inspired design)
-- **HTTP Client**: Axios
-
-### Backend & AI (Server‑Side)
-- **Language**: Python 3.10+
-- **API Framework**: FastAPI
-- **Server**: Uvicorn
-- **AI Engine**: Groq API (Llama-3.1-8b-instant)
-- **Vector DB**: Pinecone (llama-text-embed-v2)
-
-## 🚀 Installation & Setup
-
-Follow these steps to run FluX! locally.
-
-### Prerequisites
-- Node.js & npm (latest)
+### Backend & AI
 - Python 3.10+
-- Groq API key (for NLP parsing)
-- Pinecone API key (for RAG regulations)
+- FastAPI + Uvicorn
+- ChatHouseDiffusion
+- Qwen2.5-14B-Instruct (4-bit quantized)
+- CrewAI + Gemini API
+- Open-Meteo & Overpass API
+
+---
+
+## System Architecture
+
+```text
+User Input (text + location)
+│
+▼
+┌─────────────────────────────┐
+│       FastAPI Backend       │
+│  ┌───────────────────────┐  │
+│  │     Encoder (NLP)     │  │
+│  │  → Qwen2.5-14B        │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │       Generator       │  │
+│  │ → ChatHouseDiffusion  │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  Spatial Evaluator    │  │
+│  │ → RFP Metrics         │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │ Environment Evaluator │  │
+│  │ → Open-Meteo + LLM    │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │     CrewAI Agents     │  │
+│  │ → Executive Summary   │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+│
+▼
+Top 5 Plans + Summary
+```
+
+---
+
+## Spatial Evaluation (RFP Metrics)
+
+Every generated plan is strictly evaluated against topological boundaries and constraints using standard Room-Floor Polygon (RFP) metrics:
+
+| Metric | Name | Description |
+|------|--------|------------------|
+| RFP-A | Alignment | Measures the alignment accuracy between the generated room polygons and the overall floor boundary. |
+| RFP-IOU | Intersection over Union | Evaluates the overlap ratio between the predicted room bounding boxes and the topological constraints. |
+| RFP-D | Distance | Calculates the positional error distance between the generated room coordinates and their intended placement. |
+
+---
+
+## Screenshots
+
+| Input & Map Picker | Top 5 Results | Detailed Analysis |
+|--------------------|---------------|-------------------|
+| ![Input](img/input.png) | ![Gallery](img/gallery.png) | ![Detail](img/detail.png) |
+
+| Environmental Feedback | CrewAI Summary |
+|------------------------|----------------|
+| ![Env](img/env.png)    | ![Summary](img/summary.png) |
+
+---
+
+## Installation & Setup
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/adikusumaa/FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter.git
+git clone [https://github.com/adikusumaa/FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter.git](https://github.com/adikusumaa/FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter.git)
 cd FluX--FloorPlan-Arhitecture-Gen-RFP-A-Parameter
 ```
 
-### 2. Setup Backend
-Buka terminal, arahkan ke folder `backend`:
+### 2. Backend Setup
 ```bash
-cd backend
-
-# Buat Virtual Environment
+cd interface/backend
 python -m venv venv
-
-# Aktivasi Venv (Windows):
-venv\Scripts\activate
-# Aktivasi Venv (Mac/Linux):
-source venv/bin/activate
-
-# Install Dependencies
+# Windows: venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Konfigurasi Environment Backend:**
-Buat file `.env` di dalam folder `backend/` dan isi dengan konfigurasi Anda:
+Create `.env` file:
 ```env
-GROQ_API_KEY=Kunci_API_Groq_Anda
-PINECONE_API_KEY=Kunci_API_Pinecone_Anda
+GOOGLE_API_KEY=your_gemini_key
+NGROK_AUTH_LLM=your_ngrok_token
 ```
 
-**Jalankan Server Backend:**
+Run the FastAPI server:
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
-API akan berjalan dan dokumentasi Swagger dapat diakses di `http://127.0.0.1:8000/docs`
 
-### 3. Setup Frontend
-Buka terminal baru, masuk ke folder `frontend`:
+### 3. Environment Evaluator & Encoder (Qwen 14B)
 ```bash
-cd frontend
+cd services/environment_api
+python app.py
+```
 
-# Install Dependencies
+### 4. Frontend Setup
+```bash
+cd interface/frontend
 npm install
-
-# Jalankan Server Frontend
-npm start
-```
-Aplikasi web akan berjalan dan bisa diakses di `http://localhost:3000`
-
-## 📂 Struktur Direktori Utama
-```text
-FluX!/
-├── backend/                # Layanan API & AI Agent
-│   ├── main.py             # Entry point FastAPI & Ruting
-│   ├── parser.py           # Logika Groq NLP Parser
-│   ├── rag_engine.py       # Interaksi dengan Pinecone DB
-│   ├── requirements.txt    # Dependensi Python
-│   └── .env                # File Environment
-│
-├── frontend/               # Antarmuka Pengguna
-│   ├── src/
-│   │   ├── components/     # UI Components (Input, Output Cards)
-│   │   ├── styles/         # Pure CSS files
-│   │   └── App.js          # Main React App
-│   └── package.json        # Dependensi JS
-│
-└── README.md               # Dokumentasi Proyek
+npm run dev
 ```
 
-## 📊 Metrik Evaluasi Spasial (RFP-A)
-
-Sistem ini tidak sekadar membuat gambar secara acak, namun dinilai oleh AI Agent berdasarkan 4 dimensi utama:
-
-| Kode | Dimensi Evaluasi | Metode / Algoritma | Deskripsi |
-|------|------------------|--------------------|-----------|
-| **S1** | Keterbukaan Spasial | Visibility Graph Analysis (VGA) | Mengukur rasio ruang terbuka visual (isovist) dalam layout. |
-| **S2** | Efisiensi Sirkulasi | Algoritma A* | Menghitung rute terpendek dan kelancaran akses antar zona fungsional. |
-| **S3** | Rasionalitas Tata Letak | Weighted Distance Metric | Memastikan ruangan yang berelasi tinggi (misal: Dapur & Ruang Makan) saling berdekatan. |
-| **S4** | Adaptabilitas Ruang | Spatial Relation Metric (SDR) | Mengevaluasi fleksibilitas ruang untuk perubahan fungsi di masa depan. |
-
-## 🤝 Kontribusi
-
-Status Proyek saat ini berada di persentase **~54%** (Fase Integrasi RAG & Evaluator). Jika Anda tertarik dengan arsitektur generatif dan AI, kontribusi sangat diterima:
-1. Fork repositori ini.
-2. Buat branch fitur baru (`git checkout -b feature/NamaFitur`).
-3. Commit perubahan Anda (`git commit -m 'Menambahkan fitur AI baru'`).
-4. Push ke branch (`git push origin feature/NamaFitur`).
-5. Buat Pull Request.
-
-## 📜 Referensi Akademik
-- **GreenPlanner** (ACM Multimedia 2026) - Energy-Aware Generative Framework
-- **RFP-A Metrics** (Buildings MDPI 2025)
-- **Deep Learning for Small Residential Space** (Jobe 2026)
+Open `http://localhost:5173` in your browser.
 
 ---
-*Dikembangkan oleh [adikusumaa]*
+
+## How It Works (Step-by-Step)
+1. User describes their dream home.
+2. Location is picked on the map for climate context.
+3. The encoder (Qwen2.5-14B) parses the text into structured room requirements.
+4. ChatHouseDiffusion generates layout variants using topological masks.
+5. Each variant is scored for spatial accuracy using RFP-A, RFP-IOU, and RFP-D.
+6. The environment API evaluates daylight, ventilation, and noise based on local climate data.
+7. CrewAI agents analyze the top 5 plans and produce a professional executive summary.
+8. The frontend displays the results with interactive cards and the AI summary.
+
+---
+
+## Contributing
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## Academic References
+- ChatHouseDiffusion – Generative Floor Plan Framework
+- RFP Metrics – Spatial Evaluation Parameters
+- Deep Learning for Small Residential Space – Jobe 2026
+
+---
+
+## Author
+**Nur Adiyanto Kusuma Nuhgraha**  
+[GitHub](https://github.com/adikusumaa) · LinkedIn  
+Built as a research portfolio project for generative architecture and AI.
