@@ -786,3 +786,236 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.summary-section {
+  margin: 24px 0 32px;
+}
+
+.summary-card {
+  background: #f9f9fc;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin-bottom: 12px;
+}
+
+.summary-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #3a3a3c;
+  white-space: pre-line;
+  text-align: justify;
+}
+
+/* Tambahan untuk environment report */
+.env-report-section {
+  margin: 24px 0;
+}
+
+.env-report-card {
+  background: #f9f9fc;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.env-report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  font-size: 14px;
+  color: #3a3a3c;
+}
+
+.env-report-grid div {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.env-report-grid span {
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+/* ===== CREW SUMMARY (iOS Glassmorphism & Structured Parsing) ===== */
+.summary-section {
+  margin: 40px 0;
+  position: relative;
+}
+
+.crew-summary-container {
+  width: 100%;
+}
+
+.crew-summary-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+  padding: 32px;
+  overflow: hidden;
+}
+
+.crew-summary-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #1C1C1E;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.summary-header-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-mini-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #E5E5EA;
+  padding: 16px 20px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-mini-card.highlight {
+  background: rgba(0, 122, 255, 0.05);
+  border: 1px solid rgba(0, 122, 255, 0.15);
+}
+
+.mini-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8E8E93;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mini-card-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1C1C1E;
+  line-height: 1.4;
+}
+
+.summary-mini-card.highlight .mini-card-value {
+  color: #007AFF;
+}
+
+.summary-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.summary-section-block {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid #E5E5EA;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.summary-section-block.full-width {
+  grid-column: 1 / -1;
+  margin-bottom: 24px;
+}
+
+.section-block-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.pros-title { color: #34C759; }
+.cons-title { color: #FF3B30; }
+.neutral-title { color: #5856D6; }
+
+.summary-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #3A3A3C;
+}
+
+.list-bullet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.list-bullet.pros { background: #E4F8EB; color: #34C759; }
+.list-bullet.cons { background: #FFEBEA; color: #FF3B30; }
+.list-bullet.neutral { background: #F2F2F7; color: #8E8E93; }
+
+.summary-conclusion {
+  background: #F2F2F7;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.conclusion-badge {
+  background: #1C1C1E;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.summary-conclusion p {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1C1E;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .summary-header-cards, .summary-split-grid {
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+  .summary-conclusion {
+    flex-direction: column;
+  }
+}

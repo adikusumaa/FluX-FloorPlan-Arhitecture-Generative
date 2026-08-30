@@ -20,7 +20,8 @@ from src.nlp.decoder import validate_and_parse, DecoderError, MalformedJSONError
 from src.agents.workflow.agentic_refine import AgenticWorkflow
 from src.mcp.client.mcp_client import MCPClient
 from src.mcp.client.environment_client import evaluate_plans
-from src.agents.crew.crew_runner import generate_crew_summary   # <-- Import CrewAI runner
+# 🔥 Import fungsi async dari crew_runner
+from src.agents.crew.crew_runner import generate_crew_summary_async
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,8 @@ def calculate_score(analysis: Dict[str, Any]) -> float:
     score = 100.0 - (missing * 10) - (loc_err * 5)
     return max(0.0, score)
 
-def generate_floorplans(
+# 🔥 Ubah menjadi async
+async def generate_floorplans(
     user_text: str,
     weights: Optional[List[float]] = None,
     location: Optional[Dict[str, float]] = None
@@ -159,7 +161,6 @@ def generate_floorplans(
                 reconstructed_b64 = base64.b64encode(f.read()).decode('utf-8')
             os.unlink(tmp_path)
 
-            # Variasikan orientasi berdasarkan seed (0-359 derajat)
             orientation = float(seed % 360)
             logger.info(f"[POST-PROCESS] Variant {idx+1}: assigned orientation = {orientation} deg")
 
@@ -216,7 +217,6 @@ def generate_floorplans(
                 if len(env_results) != len(top_candidates):
                     logger.warning("[ENV INTEGRATION] Mismatch results count, skip env ranking.")
                 else:
-                    # Log hasil environment dari API
                     logger.info("[ENV INTEGRATION] Environment API returned results:")
                     for env_item in env_results:
                         logger.info(
@@ -308,12 +308,16 @@ def generate_floorplans(
                 cand["qwen_analysis"] = ""
         # ================= END ENV INTEGRATION =================
 
-        # ================= CREWAI SUMMARY =================
+        # ================= CREWAI SUMMARY (ASYNC) =================
+        crew_summary = ""
         try:
-            logger.info("[CREW] Generating final summary using CrewAI...")
-            crew_summary = generate_crew_summary(top_candidates, user_text, location)
+            logger.info("[CREW] Generating final summary using CrewAI (async)...")
+            crew_summary = await generate_crew_summary_async(
+                top_candidates=top_candidates,
+                user_text=user_text,
+                location=location
+            )
             if crew_summary:
-                # Tambahkan ringkasan ke parsed_data, bukan per kandidat
                 logger.info("[CREW] Summary generated successfully.")
             else:
                 logger.warning("[CREW] Empty summary, skipping.")
@@ -350,7 +354,7 @@ def generate_floorplans(
                     for c in top_candidates
                 ],
                 "environment_applied": any("env_score" in c["scores"] for c in top_candidates),
-                "crew_summary": crew_summary  # <-- Tambahkan ke parsed_data
+                "crew_summary": crew_summary
             }
         }
         logger.info("[PIPELINE] Pipeline finished successfully.")

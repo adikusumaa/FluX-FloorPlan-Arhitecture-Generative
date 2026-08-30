@@ -12,8 +12,7 @@ async def generate_floorplans_endpoint(request: GenerateRequest):
     logger.info(f"user_text: {user_text[:50]}")
 
     try:
-        result = generate_floorplans(user_text, request.weights, request.location)
-        # Pastikan result selalu berisi data yang valid
+        result = await generate_floorplans(user_text, request.weights, request.location)
         if result is None or "data" not in result:
             raise ValueError("Service tidak mengembalikan data yang valid")
         return GenerateResponse(

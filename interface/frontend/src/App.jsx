@@ -3,6 +3,7 @@ import MapPicker from './components/MapPicker';
 import NLPInput from './components/NLPInput';
 import OutputGallery from './components/OutputGallery';
 import DetailModal from './components/DetailModal';
+import CrewSummary from './components/CrewSummary';
 import useStore from './store/useStore';
 import { generateFloorplan } from './services/api';
 import mapIcon from './assets/LocationPNG.png';
@@ -15,11 +16,14 @@ function App() {
     userText,
     loading,
     results,
+    parsedData,
+    crewSummary,
     error,
     setCoordinates,
     setUserText,
     setLoading,
     setResults,
+    setCrewSummary,
     setError,
   } = useStore();
 
@@ -35,7 +39,14 @@ function App() {
     setError(null);
     try {
       const data = await generateFloorplan(coordinates, userText);
-      setResults(data);
+      
+      setResults(data.data, data.parsed_data);
+      
+      if (data.parsed_data && data.parsed_data.crew_summary) {
+        setCrewSummary(data.parsed_data.crew_summary);
+      } else {
+        setCrewSummary(null);
+      }
     } catch (err) {
       setError(err.message || 'Generation failed.');
     } finally {
@@ -50,7 +61,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* ===== NAV ===== */}
+      {/* Nav */}
       <nav className="nav-bar">
         <div className="nav-content">
           <div className="nav-logo">
@@ -64,7 +75,7 @@ function App() {
         </div>
       </nav>
 
-      {/* ===== HERO ===== */}
+      {/* Hero */}
       <section className="hero">
         <h1 className="hero-title">
           Design Your Dream Floor Plan<br />with Artificial Intelligence
@@ -75,7 +86,7 @@ function App() {
         </p>
       </section>
 
-      {/* ===== INPUT SECTION ===== */}
+      {/* Input */}
       <section className="input-section">
         <div className="input-card">
           <div
@@ -92,7 +103,6 @@ function App() {
                 Write naturally – FluX! will understand and produce the best layouts.
               </p>
             </div>
-            {/* Map Icon Button */}
             <button
               className="map-icon-btn"
               onClick={() => setShowMapModal(true)}
@@ -125,20 +135,19 @@ function App() {
         </div>
       </section>
 
-      {/* ===== RESULTS ===== */}
+      {/* Results (Top 5 Floor Plans diposisikan lebih dulu) */}
       {results && results.length > 0 && (
-        <section className="results-section">
-          <div className="results-header">
-            <h2 className="section-title">Top 5 Floor Plans for You</h2>
-            <p className="section-subtitle">
-              Based on your preferences, here are the highest‑scoring recommendations.
-            </p>
-          </div>
-          <OutputGallery results={results} onCardClick={setSelectedPlan} />
+        <OutputGallery results={results} onCardClick={setSelectedPlan} />
+      )}
+
+      {/* Crew Summary (Diposisikan di bawah galeri hasil) */}
+      {crewSummary && (
+        <section className="summary-section">
+          <CrewSummary summary={crewSummary} />
         </section>
       )}
 
-      {/* ===== MAP MODAL ===== */}
+      {/* Map Modal */}
       {showMapModal && (
         <div className="modal-overlay" onClick={() => setShowMapModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -159,7 +168,7 @@ function App() {
         </div>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
+      {/* Detail Modal */}
       {selectedPlan && (
         <DetailModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
       )}

@@ -7,16 +7,26 @@ const useStore = create((set) => ({
   loading: false,
   results: null,
   parsedData: null,
+  crewSummary: null, // <-- tambahan
   statusMessage: '',
   error: null,
+
   setUserText: (text) => set({ userText: text }),
   setWeights: (weights) => set({ weights }),
   setCoordinates: (coords) => set({ coordinates: coords }),
   setLoading: (loading) => set({ loading }),
   setResults: (data, parsed) => set({ results: data, parsedData: parsed }),
+  setCrewSummary: (summary) => set({ crewSummary: summary }),
   setError: (error) => set({ error }),
   setStatusMessage: (msg) => set({ statusMessage: msg }),
-  reset: () => set({ userText: '', results: null, parsedData: null, statusMessage: '' }),
+  reset: () => set({
+    userText: '',
+    results: null,
+    parsedData: null,
+    crewSummary: null,
+    statusMessage: '',
+    error: null
+  }),
 }));
 
 export default useStore;

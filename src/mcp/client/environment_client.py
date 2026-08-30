@@ -26,7 +26,7 @@ def evaluate_plans(lat: float, lon: float, plans: List[Dict[str, Any]],
         initial_scores: list skor awal opsional
 
     Returns:
-        JSON response dari API (berisi hasil evaluasi + mitigasi natural)
+        Dict dengan key 'results' (list hasil evaluasi) dan 'environment_report' (dict info lingkungan)
     """
     if initial_scores is None:
         initial_scores = [0.5] * len(plans)
@@ -44,10 +44,24 @@ def evaluate_plans(lat: float, lon: float, plans: List[Dict[str, Any]],
         resp = requests.post(endpoint, json=payload, timeout=600)  # timeout panjang untuk LLM
         resp.raise_for_status()
         print("[ENV CLIENT] Respons diterima dengan status 200")
-        return resp.json()
+
+        data = resp.json()
+
+        # Tampilkan environment report di log jika ada
+        env_report = data.get("environment_report")
+        if env_report:
+            city = env_report.get("city", "Unknown")
+            country = env_report.get("country", "Unknown")
+            temperature = env_report.get("temperature", "N/A")
+            print(f"[ENV CLIENT] Environment report: {city}, {country} | Temp: {temperature}°C")
+        else:
+            print("[ENV CLIENT] Environment report tidak ditemukan dalam respons.")
+
+        return data
+
     except requests.exceptions.RequestException as e:
         print(f"[ENV CLIENT] Gagal memanggil API: {e}")
-        if resp is not None:
+        if 'resp' in locals() and resp is not None:
             print(f"[ENV CLIENT] Response text: {resp.text}")
         raise
 
