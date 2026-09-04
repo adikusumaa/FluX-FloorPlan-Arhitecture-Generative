@@ -11,16 +11,16 @@
 ![FluX Input Interface](img/Screenshot%202026-08-22%20145415.png)
 *Natural language input interface.*
 
-![FluX Input MAPPICK](img/Screenshot%202026-08-30%20125203.png)
+![FluX Input MAPPICK](img/Mappick.png)
 *Map picker input interface.*
 
-![FluX Output Interface](img/Screenshot%202026-08-26%20180554.png)
+![FluX Output Interface](img/Result%20Plan%20Floor.png)
 *Top‑5 recommended floor plans ranked by energy and spatial scores.*
 
-![Analyze every RPLAN](img/Screenshot%202026-08-30%20125218.png)
+![Analyze every RPLAN](img/Floor%20Plan%20Detail.png)
 *Environment analysis based on location – recommendations for weather and orientation optimization.*
 
-![Conclusion Crew AI](img/Screenshot%202026-08-30%20125146.png)
+![Conclusion Crew AI](img/Summary.png)
 *AI‑generated executive summary with pros and cons of each RPLAN candidate.*
 
 ---

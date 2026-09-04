@@ -120,4 +120,4 @@ def extract_graph_from_image(image_path: str, min_area: int = MIN_AREA) -> Tuple
     rooms = extract_rooms_from_image(image_path, min_area)
     edges = extract_adjacency_from_rooms(rooms)
     logger.info(f"Graph extractor: {len(rooms)} rooms, {len(edges)} adjacency edges")
-    return rooms, edges
+    return rooms, edges    
